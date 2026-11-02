@@ -4,6 +4,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Yohuke.DanmuNeo.I18n;
 using Yohuke.DanmuNeo.Models.State;
 using Yohuke.DanmuNeo.Views;
 using Yohuke.DanmuNeo.Views.Components;
@@ -14,18 +15,24 @@ namespace Yohuke.DanmuNeo.Tests;
 /// <summary>
 /// 使用真实工作台设置窗口验证外观选项和发送选项的收缩、换行及选择行为。
 /// </summary>
+[Collection(AvaloniaDispatcherTestCollection.NAME)]
 public class WorkbenchSettingsLayoutTests
 {
     /// <summary>
     /// 默认及窄设置窗口中的配色下拉和发送选项均留在内容区内，选择配色后即时应用并保存。
     /// </summary>
     [AvaloniaTheory]
-    [InlineData(1000)]
-    [InlineData(760)]
-    [InlineData(560)]
-    [InlineData(440)]
-    public async Task ThemeSelectorFitsWithoutHorizontalOverflowAndAppliesSelection(double width)
+    [InlineData(1000, "zh-CN")]
+    [InlineData(760, "zh-CN")]
+    [InlineData(560, "zh-CN")]
+    [InlineData(440, "zh-CN")]
+    [InlineData(1000, "en-US")]
+    [InlineData(760, "en-US")]
+    [InlineData(560, "en-US")]
+    [InlineData(440, "en-US")]
+    public async Task ThemeSelectorFitsWithoutHorizontalOverflowAndAppliesSelection(double width, string languageId)
     {
+        using var languageScope = new LocalizationTestScope();
         using var fixture = new WorkspaceSidebarTestContext(240);
         var application = Application.Current!;
         var previousTheme = application.RequestedThemeVariant;
@@ -35,6 +42,7 @@ public class WorkbenchSettingsLayoutTests
         {
             main.Show();
             await main.Initialization;
+            Localization.SetLanguage(languageId);
             var workbench = Assert.IsType<WorkbenchSession>(main.Workbench);
             workbench.MenuCatalog.SettingsCommand.Execute(null);
             var settings = Assert.IsAssignableFrom<Window>(workbench.Windows.FindAuxiliary("settings"));
@@ -87,7 +95,8 @@ public class WorkbenchSettingsLayoutTests
     {
         var options = global.FindControl<Panel>("GlobalSendingOptions")!;
         var checkBoxes = options.Children.OfType<CheckBox>().ToArray();
-        Assert.Equal(3, checkBoxes.Length);
+        Assert.Equal(4, checkBoxes.Length);
+        Assert.Contains(checkBoxes, checkBox => checkBox.Name == "RetryBlockedWithZeroWidthSpaceCheckBox");
         var bounds = checkBoxes
             .Select(checkBox => new Rect(checkBox.TranslatePoint(default, options)!.Value, checkBox.Bounds.Size))
             .ToArray();

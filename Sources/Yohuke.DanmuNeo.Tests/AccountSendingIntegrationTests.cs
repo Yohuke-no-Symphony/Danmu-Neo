@@ -26,7 +26,7 @@ public class AccountSendingIntegrationTests
         using var client = new HttpClient(handler);
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         var sender = new DanmuSendService(client, new FakeBilibiliDanmuConfigService(), accountSessions: sessions);
-        var settings = new AppSettings { SendIntervalMs = 0 };
+        var settings = new AppSettings { SendIntervalMs = 0, RetryBlockedWithZeroWidthSpace = false };
         var request = CreateRequest("同传内容");
         DanmuDeliveryProgress? progress = null;
         for (var index = 0; index < 3; index++)

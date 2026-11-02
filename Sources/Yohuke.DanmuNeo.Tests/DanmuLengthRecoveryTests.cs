@@ -98,7 +98,7 @@ public class DanmuLengthRecoveryTests
         var sender = new DanmuSendService(client, new FakeBilibiliDanmuConfigService());
         var request = CreateRequest(new string('中', 45));
         var account = CreateAccount();
-        var settings = new AppSettings { SendIntervalMs = 0 };
+        var settings = new AppSettings { SendIntervalMs = 0, RetryBlockedWithZeroWidthSpace = false };
 
         var first = await sender.SendAsync(request, account, settings);
         Assert.False(first.IsComplete);

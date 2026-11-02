@@ -97,7 +97,7 @@ public class RoomSendingContinuationTests
 
     private static LiveRoomTabViewModel CreateRoom(ScriptedDanmuSendTransport transport, int limit)
     {
-        var settings = new AppSettings { SendIntervalMs = 0 };
+        var settings = new AppSettings { SendIntervalMs = 0, RetryBlockedWithZeroWidthSpace = false };
         var account = new BilibiliAccount { Id = "account", Cookie = "SESSDATA=test;bili_jct=test;DedeUserID=42" };
         var config = new FakeBilibiliDanmuConfigService { Config = new() { Length = limit } };
         var sender = new DanmuSendService(danmuConfigService: config, transport: transport);

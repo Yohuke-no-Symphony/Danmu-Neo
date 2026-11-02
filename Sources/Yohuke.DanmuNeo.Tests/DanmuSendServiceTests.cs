@@ -48,7 +48,8 @@ public class DanmuSendServiceTests
         using var client = new HttpClient(handler);
         var service = new DanmuSendService(client, new FakeBilibiliDanmuConfigService());
 
-        var result = await service.SendAsync("100", "同传", CreateAccount(), new());
+        var result = await service.SendAsync("100", "同传", CreateAccount(),
+            new() { RetryBlockedWithZeroWidthSpace = false });
 
         Assert.False(result.IsAccepted);
         Assert.Equal(0, result.ApiCode);

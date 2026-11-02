@@ -43,7 +43,9 @@ public sealed class DanmuSendDiagnosticTests
         using var client = new HttpClient(handler);
         var sender = new DanmuSendService(client, new FakeBilibiliDanmuConfigService());
 
-        var result = await sender.SendAsync("100", "同传正文", new() { Cookie = "SESSDATA=session-secret-tail;bili_jct=csrf-secret" }, new());
+        var result = await sender.SendAsync("100", "同传正文",
+            new() { Cookie = "SESSDATA=session-secret-tail;bili_jct=csrf-secret" },
+            new() { RetryBlockedWithZeroWidthSpace = false });
 
         Assert.False(result.IsAccepted);
         var diagnostic = Assert.IsType<DanmuSendDiagnostic>(result.Diagnostic);

@@ -5,7 +5,7 @@ using Yohuke.DanmuNeo.Models.Workspace;
 
 namespace Yohuke.DanmuNeo.Services;
 
-/// <summary>统一管理有序逻辑发送、分段、限速、限频重试与进度。</summary>
+/// <summary>统一管理有序逻辑发送、分段、限速、限频与屏蔽重试及进度。</summary>
 public class DanmuSendService : IDanmuSendService
 {
     private readonly IBilibiliDanmuConfigService danmuConfigService;
@@ -43,6 +43,7 @@ public class DanmuSendService : IDanmuSendService
         request = progress.Request;
         var intervalMs = Math.Max(0, settings.SendIntervalMs);
         var retryWhenLimited = settings.RetryWhenRateLimited;
+        var retryBlockedWithZeroWidthSpace = settings.RetryBlockedWithZeroWidthSpace;
         var timeoutSeconds = settings.TimeoutSeconds;
         var credentialToken = sendingAccount is null ? CancellationToken.None :
             accountSessions?.GetCredentialCancellationToken(sendingAccount.Id, sendingAccount.Cookie) ?? CancellationToken.None;
@@ -93,10 +94,12 @@ public class DanmuSendService : IDanmuSendService
             for (var contentIndex = 0; contentIndex < request.Contents.Count; contentIndex++)
             {
                 var content = request.Contents[contentIndex];
+                int? zeroWidthRetryEnd = null;
                 while (progress.GetAcceptedLength(contentIndex) < content.Body.Length)
                 {
                     sendToken.ThrowIfCancellationRequested();
-                    var segment = DanmuMessageSegmenter.Next(content, progress.GetAcceptedLength(contentIndex), config.Length, preferredLength);
+                    var segment = NextSegment(content, progress.GetAcceptedLength(contentIndex),
+                        config.Length, preferredLength, zeroWidthRetryEnd);
                     var attemptCount = 0;
                     var rateAttemptCount = 0;
                     DanmuSendAttemptResult attempt;
@@ -143,8 +146,21 @@ public class DanmuSendService : IDanmuSendService
 
                             preferredLength = Math.Min(preferredLength, reducedLength.Value);
                             progress.PreferredMessageLength = preferredLength;
-                            segment = DanmuMessageSegmenter.Next(content, segment.BodyStart, config.Length, preferredLength);
+                            segment = NextSegment(content, segment.BodyStart, config.Length, preferredLength, zeroWidthRetryEnd);
                             rateAttemptCount = 0;
+                            continue;
+                        }
+
+                        if (attempt.FailureKind == DanmuSendFailureKind.Blocked && retryBlockedWithZeroWidthSpace &&
+                            zeroWidthRetryEnd is null && DanmuMessageSegmenter.CanInsertZeroWidthSpaces(
+                                content.Body, segment.BodyStart, segment.BodyStart + segment.BodyLength))
+                        {
+                            sendToken.ThrowIfCancellationRequested();
+                            zeroWidthRetryEnd = segment.BodyStart + segment.BodyLength;
+                            segment = NextSegment(content, segment.BodyStart, config.Length, preferredLength, zeroWidthRetryEnd);
+                            rateAttemptCount = 0;
+                            log?.Information(Localization.Get("Services.Send.LogSource"),
+                                Localization.Format("Services.Send.BlockedRetryScheduled", request.RoomId));
                             continue;
                         }
 
@@ -172,6 +188,10 @@ public class DanmuSendService : IDanmuSendService
                     if (!result.IsAccepted)
                     {
                         return new() { Progress = progress };
+                    }
+                    if (progress.GetAcceptedLength(contentIndex) == zeroWidthRetryEnd)
+                    {
+                        zeroWidthRetryEnd = null;
                     }
                 }
             }
@@ -209,6 +229,14 @@ public class DanmuSendService : IDanmuSendService
         var delivery = await SendAsync(new() { RoomId = roomId, Contents = [new() { Body = message }] },
             account, settings, cancellationToken: cancellationToken);
         return delivery.Results.Last();
+    }
+
+    private static DanmuSendSegment NextSegment(DanmuMessageContent content, int start,
+        int maxLength, int preferredLength, int? zeroWidthRetryEnd)
+    {
+        return zeroWidthRetryEnd is { } end
+            ? DanmuMessageSegmenter.NextWithZeroWidthSpaces(content, start, end, maxLength, preferredLength)
+            : DanmuMessageSegmenter.Next(content, start, maxLength, preferredLength);
     }
 
     private async Task WaitForSendIntervalAsync(int intervalMs, CancellationToken cancellationToken)

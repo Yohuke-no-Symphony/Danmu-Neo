@@ -104,7 +104,8 @@ public class DanmuDeliveryTests
             Config = new() { Length = 6 }
         }, transport: transport);
 
-        var result = await service.SendAsync(CreateRequest("甲乙丙丁戊己庚辛"), CreateAccount(), new());
+        var result = await service.SendAsync(CreateRequest("甲乙丙丁戊己庚辛"), CreateAccount(),
+            new() { RetryBlockedWithZeroWidthSpace = false });
 
         Assert.False(result.IsComplete);
         Assert.Single(transport.Messages);
@@ -120,7 +121,7 @@ public class DanmuDeliveryTests
         var config = new FakeBilibiliDanmuConfigService { Config = new() { Length = 6 } };
         var service = new DanmuSendService(danmuConfigService: config, transport: transport);
         var request = CreateRequest("甲乙丙丁戊己庚辛壬癸");
-        var settings = new AppSettings { SendIntervalMs = 0 };
+        var settings = new AppSettings { SendIntervalMs = 0, RetryBlockedWithZeroWidthSpace = false };
         var first = await service.SendAsync(request, CreateAccount(), settings);
         var failedId = first.Results.Last().Record.SendRecordId;
         config.Config = new() { Length = 5 };
@@ -146,7 +147,7 @@ public class DanmuDeliveryTests
             Config = new() { Length = 6 }
         }, transport: transport);
         var request = CreateRequest("甲乙丙丁戊己");
-        var settings = new AppSettings { SendIntervalMs = 0 };
+        var settings = new AppSettings { SendIntervalMs = 0, RetryBlockedWithZeroWidthSpace = false };
         var first = await service.SendAsync(request, CreateAccount(), settings);
         var changed = CreateAccount();
         changed.Cookie = "SESSDATA=other;bili_jct=other;DedeUserID=43";

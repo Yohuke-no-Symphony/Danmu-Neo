@@ -96,6 +96,9 @@ public class AppSettings
     /// </summary>
     public bool RetryWhenRateLimited { get; set; } = true;
 
+    /// <summary>明确被屏蔽时是否加入零宽空格，自动重发一次。</summary>
+    public bool RetryBlockedWithZeroWidthSpace { get; set; } = true;
+
     /// <summary>
     /// 播放或追帧时是否自动开启监听。
     /// </summary>

@@ -494,7 +494,8 @@ public class RoomLogTests
         }
 
         var room = new LiveRoomTabViewModel(state);
-        room.Configure(_ => account, (_, _) => account, () => new(), () => new(), () => [],
+        room.Configure(_ => account, (_, _) => account,
+            () => new() { RetryBlockedWithZeroWidthSpace = false }, () => new(), () => [],
             _ => forwardingSource is null ? [] : [forwardingSource], sender ?? new FakeDanmuSendService(),
             new FakeRoomAvatarService(), () => Task.CompletedTask, streams, new FakeLivePlayerService(),
             liveDanmuSocketFactory: socketFactory,

@@ -106,6 +106,9 @@
                               IsChecked="{Binding Settings.EnableShieldProcessing}"/>
                     <CheckBox Content="{Loc Key=UI.GlobalSettingsView.RetryRateLimitedMessages}"
                               IsChecked="{Binding Settings.RetryWhenRateLimited}"/>
+                    <CheckBox x:Name="RetryBlockedWithZeroWidthSpaceCheckBox"
+                              Content="{Loc Key=UI.GlobalSettingsView.RetryBlockedWithZeroWidthSpace}"
+                              IsChecked="{Binding Settings.RetryBlockedWithZeroWidthSpace}"/>
                     <CheckBox Content="{Loc Key=UI.GlobalSettingsView.AutoListenOnPlayback}"
                               IsChecked="{Binding Settings.AutoStartListeningWithLivePlayer}"/>
                 </WrapPanel>
