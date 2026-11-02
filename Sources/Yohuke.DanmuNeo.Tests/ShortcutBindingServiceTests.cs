@@ -7,10 +7,13 @@ namespace Yohuke.DanmuNeo.Tests;
 public class ShortcutBindingServiceTests
 {
     /// <summary>
-    /// 旧配置补齐弹幕回顶快捷键，保留已有绑定且不引入默认按键冲突。
+    /// 旧配置补齐弹幕和 SC 回顶快捷键，保留已有绑定且不引入默认按键冲突。
     /// </summary>
-    [Fact]
-    public void NormalizeAddsDanmuScrollToTopWithoutChangingCustomBinding()
+    [Theory]
+    [InlineData("danmu.scrollToTop", "Alt+Home", KeyModifiers.Alt)]
+    [InlineData("superChat.scrollToTop", "Alt+Shift+Home", KeyModifiers.Alt | KeyModifiers.Shift)]
+    public void NormalizeAddsFeedScrollToTopWithoutChangingCustomBinding(string actionKey, string gesture,
+        KeyModifiers modifiers)
     {
         var existing = new ShortcutBindingState
         {
@@ -22,11 +25,11 @@ public class ShortcutBindingServiceTests
 
         Assert.Same(existing, settings.ShortcutBindings.Single(item => item.ActionKey == existing.ActionKey));
         Assert.Equal("Ctrl+F", existing.GestureText);
-        var scrollToTop = Assert.Single(settings.ShortcutBindings, item => item.ActionKey == "danmu.scrollToTop");
+        var scrollToTop = Assert.Single(settings.ShortcutBindings, item => item.ActionKey == actionKey);
         Assert.True(scrollToTop.IsEnabled);
-        Assert.Equal("Alt+Home", scrollToTop.GestureText);
+        Assert.Equal(gesture, scrollToTop.GestureText);
         Assert.Equal(scrollToTop.ActionKey,
-            ShortcutBindingService.GetTriggeredActionKey(settings.ShortcutBindings, Key.Home, KeyModifiers.Alt));
+            ShortcutBindingService.GetTriggeredActionKey(settings.ShortcutBindings, Key.Home, modifiers));
         Assert.Empty(ShortcutBindingService.GetConflictActionKeys(settings.ShortcutBindings));
     }
 
@@ -143,7 +146,7 @@ public class ShortcutBindingServiceTests
     }
 
     /// <summary>
-    /// 歌词与弹幕回顶的禁用、清空和自定义手势经保存读取后仍然保留。
+    /// 歌词、弹幕与 SC 回顶的禁用、清空和自定义手势经保存读取后仍然保留。
     /// </summary>
     [Theory]
     [InlineData(ShortcutActionKeys.LYRIC_SEEK_NEXT, "", false)]
@@ -155,6 +158,9 @@ public class ShortcutBindingServiceTests
     [InlineData("danmu.scrollToTop", "", false)]
     [InlineData("danmu.scrollToTop", "Ctrl+H", false)]
     [InlineData("danmu.scrollToTop", "Ctrl+H", true)]
+    [InlineData("superChat.scrollToTop", "", false)]
+    [InlineData("superChat.scrollToTop", "Ctrl+H", false)]
+    [InlineData("superChat.scrollToTop", "Ctrl+H", true)]
     public void BindingPersistsCustomAndDisabledStates(string actionKey, string gesture, bool enabled)
     {
         var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));

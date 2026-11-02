@@ -21,6 +21,11 @@ public static partial class ShortcutActionKeys
     public const string DANMU_SCROLL_TO_TOP = "danmu.scrollToTop";
 
     /// <summary>
+    /// SC 和上舰记录列表回到顶部。
+    /// </summary>
+    public const string SUPER_CHAT_SCROLL_TO_TOP = "superChat.scrollToTop";
+
+    /// <summary>
     /// 开始播放直播。
     /// </summary>
     public const string LIVE_PLAYER_START = "livePlayer.start";

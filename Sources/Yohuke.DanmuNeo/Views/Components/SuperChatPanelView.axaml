@@ -8,13 +8,25 @@
                                x:DataType="items:LiveRoomTabViewModel"
                                x:CompileBindings="True"
                                x:Name="Root">
+    <components:WorkbenchRoomPanel.HeaderActionsTemplate>
+        <DataTemplate x:DataType="components:SuperChatPanelView">
+            <Button x:Name="SuperChatScrollToTopButton"
+                    Classes="dockChromeButton"
+                    Foreground="{DynamicResource AppMutedTextBrush}"
+                    ToolTip.Tip="{Loc Key=UI.SuperChatPanelView.ScrollToTop}"
+                    AutomationProperties.Name="{Loc Key=UI.SuperChatPanelView.ScrollToTop}"
+                    Command="{Binding ScrollToTopCommand}">
+                <LucideIcon Kind="ArrowUpToLine" Width="16" Height="16" />
+            </Button>
+        </DataTemplate>
+    </components:WorkbenchRoomPanel.HeaderActionsTemplate>
     <Border Padding="{StaticResource WorkbenchPanelPadding}">
         <Grid Classes.compactDanmu="{Binding #Root.Context.Application.IsCompactDanmuDisplay}"
               Classes.compactDanmuWrap="{Binding #Root.Context.Application.IsCompactDanmuWrap}"
               Classes.compactSuperChatWrap="{Binding #Root.Context.Application.IsCompactSuperChatWrap}">
-            <ListBox
-                Classes="feedList"
-                ItemsSource="{Binding SuperChats}">
+            <ListBox x:Name="SuperChatListBox"
+                     Classes="feedList"
+                     ItemsSource="{Binding SuperChats}">
                 <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="workspace:SuperChatItem">
                         <Button Classes="scFeedButton"

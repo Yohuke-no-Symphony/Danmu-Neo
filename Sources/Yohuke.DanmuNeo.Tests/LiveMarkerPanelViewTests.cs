@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.IO.Compression;
+using System.Xml.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
@@ -150,17 +153,19 @@ public sealed class LiveMarkerPanelViewTests
     }
 
     /// <summary>
-    /// 非法直播时间阻止表格提交，Esc 恢复；有效编辑可撤销且不改变实际时间。
+    /// 非法直播时间阻止提交，Esc 恢复；有效编辑同步实际时间并贯穿保存、导出和撤销重做。
     /// </summary>
     [AvaloniaFact]
-    public async Task DataGridValidationCancellationAndCommitPreserveIndependentRealTime()
+    public async Task DataGridTimeEditSynchronizesRealTimeThroughSaveExportAndHistory()
     {
         var directory = CreateDirectory();
         using var fixture = new LiveRoomFeedViewTestContext();
         fixture.ViewModel.Settings.LiveMarkerAutoSaveEnabled = false;
         var marker = fixture.Room.LiveMarker;
         var original = WithEntry();
-        await OpenDocumentAsync(marker, Path.Combine(directory, "markers.yaml"), original);
+        var path = Path.Combine(directory, "markers.yaml");
+        await OpenDocumentAsync(marker, path, original);
+        var startTime = marker.CaptureSnapshot().StartTime;
         using var context = new WorkbenchContext(fixture.ViewModel);
         using var panel = new LiveMarkerPanelView(context);
         var window = ShowWindow(panel, 900);
@@ -187,10 +192,33 @@ public sealed class LiveMarkerPanelViewTests
             Pump(window);
             Assert.True(panel.CommitEditing());
             Assert.Equal(TimeSpan.FromHours(25).Add(TimeSpan.FromMinutes(1)).Add(TimeSpan.FromMilliseconds(2003)), row.Snapshot.LiveTime);
-            Assert.True(original.RealDateTime.EqualsExact(row.Snapshot.RealDateTime));
+            var expectedRealTime = startTime + row.Snapshot.LiveTime;
+            var expectedText = expectedRealTime.ToString("yyyy-MM-dd HH:mm:ss.fff zzz", CultureInfo.InvariantCulture);
+            Assert.True(expectedRealTime.EqualsExact(row.Snapshot.RealDateTime));
+            Pump(window);
+            Assert.Contains(grid.GetVisualDescendants().OfType<TextBlock>(), text => text.Text == expectedText);
+            await marker.SaveAsync();
+            var saved = await new LiveMarkerFileService().LoadAsync(path);
+            Assert.True(startTime.EqualsExact(saved.StartTime));
+            Assert.Equal(row.Snapshot, Assert.Single(saved.Marker));
+            var textPath = Path.Combine(directory, "markers.txt");
+            await marker.ExportTextAsync(textPath);
+            Assert.Equal(expectedText, (await File.ReadAllLinesAsync(textPath))[1].Split('\t')[1]);
+            var excelPath = Path.Combine(directory, "markers.xlsx");
+            await marker.ExportExcelAsync(excelPath);
+            using (var archive = ZipFile.OpenRead(excelPath))
+            {
+                using var stream = archive.GetEntry("xl/worksheets/sheet1.xml")!.Open();
+                var sheet = XDocument.Load(stream);
+                XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+                Assert.Equal(expectedText, sheet.Descendants(ns + "c").Single(cell => cell.Attribute("r")?.Value == "B2").Value);
+            }
+
             grid.Focus();
             Assert.True(panel.TryHandleShortcut("liveMarker.undo", false));
             Assert.Equal(original, Assert.Single(marker.Entries).Snapshot);
+            Assert.True(panel.TryHandleShortcut("liveMarker.redo", false));
+            Assert.True(expectedRealTime.EqualsExact(Assert.Single(marker.Entries).Snapshot.RealDateTime));
         }
         finally
         {

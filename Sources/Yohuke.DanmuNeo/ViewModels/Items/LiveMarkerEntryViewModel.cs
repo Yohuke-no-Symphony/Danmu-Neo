@@ -12,6 +12,7 @@ namespace Yohuke.DanmuNeo.ViewModels.Items;
 /// <summary>具有行级编辑事务的单条直播记录。</summary>
 public sealed class LiveMarkerEntryViewModel : ObservableObject, IEditableObject, INotifyDataErrorInfo
 {
+    private readonly DateTimeOffset startTime;
     private readonly Action<LiveMarkerEntryViewModel, LiveMarkerEntry, LiveMarkerEntry> commit;
     private LiveMarkerEntry committed;
     private string liveTimeText;
@@ -19,11 +20,13 @@ public sealed class LiveMarkerEntryViewModel : ObservableObject, IEditableObject
     private LiveMarkerColor markerColor;
     private bool isEditing;
 
-    /// <summary>连接一条不可变记录及其提交入口。</summary>
-    public LiveMarkerEntryViewModel(LiveMarkerEntry entry, IReadOnlyList<LiveMarkerColorOption> colorOptions,
+    /// <summary>连接文件计时起点、不可变记录及其提交入口。</summary>
+    public LiveMarkerEntryViewModel(LiveMarkerEntry entry, DateTimeOffset startTime,
+        IReadOnlyList<LiveMarkerColorOption> colorOptions,
         Action<LiveMarkerEntryViewModel, LiveMarkerEntry, LiveMarkerEntry> commit)
     {
         committed = entry;
+        this.startTime = startTime;
         this.commit = commit;
         ColorOptions = colorOptions;
         liveTimeText = LiveMarkerTimeInput.Format(entry.LiveTime);
@@ -34,7 +37,7 @@ public sealed class LiveMarkerEntryViewModel : ObservableObject, IEditableObject
     /// <summary>已提交的存储值。</summary>
     public LiveMarkerEntry Snapshot => committed;
 
-    /// <summary>独立捕获且只读的实际时间。</summary>
+    /// <summary>记录对应的只读实际时间。</summary>
     public string RealTimeText => committed.RealDateTime.ToString("yyyy-MM-dd HH:mm:ss.fff zzz", CultureInfo.InvariantCulture);
 
     /// <summary>可编辑的累计直播时间。</summary>
@@ -82,7 +85,7 @@ public sealed class LiveMarkerEntryViewModel : ObservableObject, IEditableObject
     public IBrush ColorBrush => ColorOptions.First(option => option.Value == MarkerColor).Brush;
 
     /// <inheritdoc/>
-    public bool HasErrors => !LiveMarkerTimeInput.TryParse(LiveTimeText, out _);
+    public bool HasErrors => !TryGetEditedTime(out _, out _);
 
     /// <inheritdoc/>
     public event EventHandler<DataErrorsChangedEventArgs>? ErrorsChanged;
@@ -104,20 +107,26 @@ public sealed class LiveMarkerEntryViewModel : ObservableObject, IEditableObject
     /// <inheritdoc/>
     public void EndEdit()
     {
-        if (!isEditing || !LiveMarkerTimeInput.TryParse(LiveTimeText, out var time))
+        if (!isEditing || !TryGetEditedTime(out var time, out var realTime))
         {
             return;
         }
 
         isEditing = false;
         var before = committed;
-        if (LiveTimeText == LiveMarkerTimeInput.Format(committed.LiveTime))
+        var after = new LiveMarkerEntry
         {
-            time = committed.LiveTime;
+            LiveTime = time,
+            RealDateTime = realTime,
+            Message = Message,
+            MarkerColor = MarkerColor
+        };
+        committed = after;
+        if (!before.RealDateTime.EqualsExact(after.RealDateTime))
+        {
+            OnPropertyChanged(nameof(RealTimeText));
         }
 
-        var after = committed with { LiveTime = time, Message = Message, MarkerColor = MarkerColor };
-        committed = after;
         commit(this, before, after);
     }
 
@@ -133,5 +142,21 @@ public sealed class LiveMarkerEntryViewModel : ObservableObject, IEditableObject
     internal void RefreshLanguage()
     {
         OnPropertyChanged(nameof(ColorName));
+    }
+
+    private bool TryGetEditedTime(out TimeSpan time, out DateTimeOffset realTime)
+    {
+        realTime = committed.RealDateTime;
+        if (!LiveMarkerTimeInput.TryParse(LiveTimeText, out time))
+        {
+            return false;
+        }
+
+        if (LiveTimeText == LiveMarkerTimeInput.Format(committed.LiveTime))
+        {
+            time = committed.LiveTime;
+        }
+
+        return time == committed.LiveTime || LiveMarkerTimeMapping.TryGetRealTime(startTime, time, out realTime);
     }
 }

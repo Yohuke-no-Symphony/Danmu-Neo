@@ -1,6 +1,6 @@
 namespace Yohuke.DanmuNeo.Models.LiveMarker;
 
-/// <summary>保存两个独立时间值的不可变直播记录。</summary>
+/// <summary>保存直播内时间及对应实际时间的不可变直播记录。</summary>
 public sealed record LiveMarkerEntry
 {
     public DateTimeOffset RealDateTime { get; init; }

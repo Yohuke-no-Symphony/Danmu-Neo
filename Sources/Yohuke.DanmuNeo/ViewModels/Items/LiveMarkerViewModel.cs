@@ -39,7 +39,6 @@ public sealed partial class LiveMarkerViewModel : ObservableObject, IDisposable
     private bool keepEmptyDraftTime;
     private bool disposed;
     private TimeSpan lockedLiveTime;
-    private DateTimeOffset lockedRealTime;
     private string draftText = "";
 
     /// <summary>为房间标签创建独立的编辑会话。</summary>
@@ -83,7 +82,7 @@ public sealed partial class LiveMarkerViewModel : ObservableObject, IDisposable
     /// <summary>是否可以提交打点。</summary>
     public bool CanAddMarker => CanEdit && HasDraft &&
         (!LiveMarkerTimeInput.TryReadPrefix(DraftText, out _, out var remaining) || !string.IsNullOrWhiteSpace(remaining)) &&
-        (IsTimeLocked ? lockedLiveTime : clock!.Elapsed) >= TimeSpan.Zero;
+        LiveMarkerTimeMapping.TryGetRealTime(document!.StartTime, IsTimeLocked ? lockedLiveTime : clock!.Elapsed, out _);
 
     /// <summary>保存状态提示。</summary>
     public string SaveStatus => Localization.Get(IsSaving ? "LiveMarker.Saving" : IsDirty ? "LiveMarker.Unsaved" : "LiveMarker.Saved");
@@ -432,7 +431,7 @@ public sealed partial class LiveMarkerViewModel : ObservableObject, IDisposable
         await services.Exports.ExportExcelAsync(CaptureSnapshot(), path, lifetime.Token);
     }
 
-    /// <summary>取得两个时间互不联动的不可变快照。</summary>
+    /// <summary>取得当前已提交记录及文件计时起点的不可变快照。</summary>
     public LiveMarkerDocument CaptureSnapshot()
     {
         return (document ?? throw new InvalidOperationException(Localization.Get("LiveMarker.NoFile"))) with
@@ -494,10 +493,15 @@ public sealed partial class LiveMarkerViewModel : ObservableObject, IDisposable
             CaptureInputTime(false);
         }
 
+        if (!LiveMarkerTimeMapping.TryGetRealTime(document!.StartTime, lockedLiveTime, out var realTime))
+        {
+            return;
+        }
+
         var entry = new LiveMarkerEntry
         {
             LiveTime = lockedLiveTime,
-            RealDateTime = lockedRealTime,
+            RealDateTime = realTime,
             Message = DraftText.Trim(),
             MarkerColor = SelectedColor
         };
@@ -522,7 +526,6 @@ public sealed partial class LiveMarkerViewModel : ObservableObject, IDisposable
         }
 
         lockedLiveTime = clock.Elapsed;
-        lockedRealTime = clock.LocalNow;
         keepEmptyDraftTime = keepWhenEmpty;
         IsTimeLocked = true;
         RefreshClock();
@@ -667,7 +670,7 @@ public sealed partial class LiveMarkerViewModel : ObservableObject, IDisposable
 
     private LiveMarkerEntryViewModel CreateRow(LiveMarkerEntry entry)
     {
-        return new(entry, ColorOptions, CommitRow);
+        return new(entry, document!.StartTime, ColorOptions, CommitRow);
     }
 
     private void CommitRow(LiveMarkerEntryViewModel row, LiveMarkerEntry before, LiveMarkerEntry after)

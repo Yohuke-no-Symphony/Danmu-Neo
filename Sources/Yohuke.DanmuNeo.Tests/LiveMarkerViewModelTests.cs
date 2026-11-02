@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Threading;
 using Yohuke.DanmuNeo.Models.LiveMarker;
 using Yohuke.DanmuNeo.Models.State;
@@ -28,34 +29,36 @@ public sealed class LiveMarkerViewModelTests
         Assert.False(context.ViewModel.HasDraft);
     }
 
-    /// <summary>手动输入前缀仅覆盖直播时间，实际时间保留首字符采样。</summary>
+    /// <summary>手动输入前缀按文件起点换算对应的实际时间。</summary>
     [Theory]
     [InlineData("27:02:03 event")]
     [InlineData("27：02：03 event")]
     [InlineData("27.02.03 event")]
     [InlineData("27．02．03 event")]
-    public async Task ManualPrefixOverridesOnlyLiveTime(string input)
+    public async Task ManualPrefixDerivesRealTimeFromDocumentStart(string input)
     {
         using var context = new LiveMarkerSessionTestContext();
         await context.OpenAsync();
-        var expectedRealTime = context.Time.GetLocalNow();
+        var startTime = context.ViewModel.CaptureSnapshot().StartTime;
+        var expectedLiveTime = TimeSpan.FromHours(27) + TimeSpan.FromMinutes(2) + TimeSpan.FromSeconds(3);
         context.ViewModel.DraftText = input;
         context.Time.Advance(TimeSpan.FromSeconds(40));
         context.ViewModel.AddMarkerCommand.Execute(null);
         var entry = Assert.Single(context.ViewModel.CaptureSnapshot().Marker);
 
-        Assert.Equal(expectedRealTime, entry.RealDateTime);
-        Assert.Equal(TimeSpan.FromHours(27) + TimeSpan.FromMinutes(2) + TimeSpan.FromSeconds(3), entry.LiveTime);
+        Assert.True((startTime + expectedLiveTime).EqualsExact(entry.RealDateTime));
+        Assert.Equal(expectedLiveTime, entry.LiveTime);
         Assert.Equal("event", entry.Message);
     }
 
-    /// <summary>纯时间等待空白分隔符后才移除前缀，并保留最初输入时的实际时间。</summary>
+    /// <summary>纯时间等待空白分隔符后才移除前缀，后续备注沿用指定时间。</summary>
     [Fact]
     public async Task TimeOnlyPrefixRemainsLockedWhenMessageArrivesLater()
     {
         using var context = new LiveMarkerSessionTestContext();
         await context.OpenAsync();
-        var expectedRealTime = context.Time.GetLocalNow();
+        var startTime = context.ViewModel.CaptureSnapshot().StartTime;
+        var expectedLiveTime = TimeSpan.FromHours(29) + TimeSpan.FromMinutes(3) + TimeSpan.FromSeconds(4);
         context.ViewModel.DraftText = "29:03:04";
         Assert.Equal("29:03:04", context.ViewModel.DraftText);
         Assert.True(context.ViewModel.HasDraft);
@@ -65,8 +68,8 @@ public sealed class LiveMarkerViewModelTests
         context.ViewModel.AddMarkerCommand.Execute(null);
         var entry = Assert.Single(context.ViewModel.CaptureSnapshot().Marker);
 
-        Assert.Equal(expectedRealTime, entry.RealDateTime);
-        Assert.Equal(TimeSpan.FromHours(29) + TimeSpan.FromMinutes(3) + TimeSpan.FromSeconds(4), entry.LiveTime);
+        Assert.True((startTime + expectedLiveTime).EqualsExact(entry.RealDateTime));
+        Assert.Equal(expectedLiveTime, entry.LiveTime);
         Assert.Equal("later message", entry.Message);
     }
 
@@ -80,7 +83,7 @@ public sealed class LiveMarkerViewModelTests
     {
         using var context = new LiveMarkerSessionTestContext();
         await context.OpenAsync();
-        var firstCharacterTime = context.Time.GetLocalNow();
+        var startTime = context.ViewModel.CaptureSnapshot().StartTime;
 
         foreach (var character in text)
         {
@@ -93,9 +96,10 @@ public sealed class LiveMarkerViewModelTests
         context.ViewModel.AddMarkerCommand.Execute(null);
         var entry = Assert.Single(context.ViewModel.CaptureSnapshot().Marker);
 
-        Assert.Equal(firstCharacterTime, entry.RealDateTime);
-        Assert.Equal(TimeSpan.FromHours(hours) + TimeSpan.FromMinutes(23) + TimeSpan.FromSeconds(45) +
-            TimeSpan.FromMilliseconds(milliseconds), entry.LiveTime);
+        var expectedLiveTime = TimeSpan.FromHours(hours) + TimeSpan.FromMinutes(23) + TimeSpan.FromSeconds(45) +
+            TimeSpan.FromMilliseconds(milliseconds);
+        Assert.True((startTime + expectedLiveTime).EqualsExact(entry.RealDateTime));
+        Assert.Equal(expectedLiveTime, entry.LiveTime);
         Assert.Equal("内容", entry.Message);
     }
 
@@ -147,13 +151,13 @@ public sealed class LiveMarkerViewModelTests
         Assert.Equal("new note", entry.Message);
     }
 
-    /// <summary>已通过空白分隔符确认的手工时间前缀，跨空草稿保留手工时长及首次实际时间。</summary>
+    /// <summary>已确认的手工时间前缀跨空草稿保留时长及其换算得到的实际时间。</summary>
     [Fact]
     public async Task ExplicitTimePrefixSurvivesClearingTheMessage()
     {
         using var context = new LiveMarkerSessionTestContext();
         await context.OpenAsync();
-        var firstCharacterTime = context.Time.GetLocalNow();
+        var startTime = context.ViewModel.CaptureSnapshot().StartTime;
         context.ViewModel.DraftText = "29:03:04.123 old note";
         Assert.Equal("old note", context.ViewModel.DraftText);
         context.Time.Advance(TimeSpan.FromSeconds(5));
@@ -165,9 +169,10 @@ public sealed class LiveMarkerViewModelTests
         context.ViewModel.AddMarkerCommand.Execute(null);
         var entry = Assert.Single(context.ViewModel.CaptureSnapshot().Marker);
 
-        Assert.Equal(firstCharacterTime, entry.RealDateTime);
-        Assert.Equal(TimeSpan.FromHours(29) + TimeSpan.FromMinutes(3) + TimeSpan.FromSeconds(4) +
-            TimeSpan.FromMilliseconds(123), entry.LiveTime);
+        var expectedLiveTime = TimeSpan.FromHours(29) + TimeSpan.FromMinutes(3) + TimeSpan.FromSeconds(4) +
+            TimeSpan.FromMilliseconds(123);
+        Assert.True((startTime + expectedLiveTime).EqualsExact(entry.RealDateTime));
+        Assert.Equal(expectedLiveTime, entry.LiveTime);
         Assert.Equal("new note", entry.Message);
     }
 
@@ -205,28 +210,44 @@ public sealed class LiveMarkerViewModelTests
         Assert.Equal(TimeSpan.FromHours(1) + TimeSpan.FromSeconds(30), entry.LiveTime);
     }
 
-    /// <summary>编辑直播时间及撤销重做均不推导实际时间，未编辑行保持实例。</summary>
-    [Fact]
-    public async Task RowEditUndoRedoKeepsIndependentRealTime()
+    /// <summary>编辑直播时间按文件起点联动实际时间，两个时间作为一次编辑撤销和重做。</summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(35)]
+    public async Task RowEditUndoRedoSynchronizesRealTimeFromDocumentStart(int hours)
     {
         using var context = new LiveMarkerSessionTestContext();
         var entry = CreateIndependentEntry();
+        var startTime = new DateTimeOffset(2026, 10, 20, 23, 30, 0, TimeSpan.FromHours(8));
         await context.OpenAsync(new()
         {
-            StartTime = context.Clock.StartTime,
+            StartTime = startTime,
             Marker = [entry, entry with { Message = "unaffected" }]
         });
         var edited = context.ViewModel.Entries[0];
         var unaffected = context.ViewModel.Entries[1];
+        var realTimeChanges = 0;
+        edited.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(edited.RealTimeText))
+            {
+                realTimeChanges++;
+            }
+        };
         edited.BeginEdit();
-        edited.LiveTimeText = "35:02:03.456";
+        edited.LiveTimeText = $"{hours:00}:02:03.456";
         edited.Message = "edited";
         edited.MarkerColor = LiveMarkerColor.Green;
         edited.EndEdit();
+        var expectedLiveTime = TimeSpan.FromHours(hours) + TimeSpan.FromMinutes(2) + TimeSpan.FromSeconds(3) +
+            TimeSpan.FromMilliseconds(456);
+        var expectedRealTime = startTime + expectedLiveTime;
+        var expectedRealTimeText = expectedRealTime.ToString("yyyy-MM-dd HH:mm:ss.fff zzz", CultureInfo.InvariantCulture);
         Assert.True(context.ViewModel.IsDirty);
-        Assert.Equal(entry.RealDateTime, edited.Snapshot.RealDateTime);
-        Assert.Equal(TimeSpan.FromHours(35) + TimeSpan.FromMinutes(2) + TimeSpan.FromSeconds(3) +
-            TimeSpan.FromMilliseconds(456), edited.Snapshot.LiveTime);
+        Assert.True(expectedRealTime.EqualsExact(edited.Snapshot.RealDateTime));
+        Assert.Equal(expectedLiveTime, edited.Snapshot.LiveTime);
+        Assert.Equal(expectedRealTimeText, edited.RealTimeText);
+        Assert.Equal(1, realTimeChanges);
 
         context.ViewModel.UndoCommand.Execute(null);
         Assert.Equal(entry, context.ViewModel.Entries[0].Snapshot);
@@ -234,7 +255,9 @@ public sealed class LiveMarkerViewModelTests
         Assert.False(context.ViewModel.IsDirty);
         context.ViewModel.RedoCommand.Execute(null);
         Assert.Equal("edited", context.ViewModel.Entries[0].Message);
-        Assert.Equal(entry.RealDateTime, context.ViewModel.Entries[0].Snapshot.RealDateTime);
+        Assert.True(expectedRealTime.EqualsExact(context.ViewModel.Entries[0].Snapshot.RealDateTime));
+        Assert.Equal(expectedRealTimeText, context.ViewModel.Entries[0].RealTimeText);
+        Assert.Same(unaffected, context.ViewModel.Entries[1]);
         Assert.Equal(LiveMarkerColor.Green, context.ViewModel.Entries[0].MarkerColor);
         Assert.True(context.ViewModel.IsDirty);
     }
@@ -285,6 +308,7 @@ public sealed class LiveMarkerViewModelTests
     [InlineData("-01:00:00")]
     [InlineData("25:61:00")]
     [InlineData("invalid")]
+    [InlineData("100000000:00:00")]
     public async Task InvalidRowTimeCannotChangeCommittedDocument(string text)
     {
         using var context = new LiveMarkerSessionTestContext();
@@ -300,6 +324,42 @@ public sealed class LiveMarkerViewModelTests
         Assert.False(context.ViewModel.IsDirty);
         row.CancelEdit();
         Assert.False(row.HasErrors);
+    }
+
+    /// <summary>时间前缀换算超出日期范围时阻止提交，修正时间后可以继续记录。</summary>
+    [Fact]
+    public async Task OutOfRangePrefixCannotBeSubmitted()
+    {
+        using var context = new LiveMarkerSessionTestContext();
+        await context.OpenAsync();
+        context.ViewModel.DraftText = "100000000:00:00 overflow";
+        Assert.False(context.ViewModel.CanAddMarker);
+        context.ViewModel.AddMarkerCommand.Execute(null);
+        Assert.Empty(context.ViewModel.Entries);
+        Assert.True(context.ViewModel.HasDraft);
+        context.ViewModel.DraftText = "01:02:03 corrected";
+        Assert.True(context.ViewModel.CanAddMarker);
+        context.ViewModel.AddMarkerCommand.Execute(null);
+        var entry = Assert.Single(context.ViewModel.Entries).Snapshot;
+        Assert.Equal(context.Clock.StartTime + new TimeSpan(1, 2, 3), entry.RealDateTime);
+        Assert.Equal("corrected", entry.Message);
+    }
+
+    /// <summary>系统校时不会打破文件起点与本条直播时间之间的对应关系。</summary>
+    [Fact]
+    public async Task CapturedTimeUsesDocumentStartAfterSystemClockAdjustment()
+    {
+        using var context = new LiveMarkerSessionTestContext();
+        var startTime = context.Time.GetLocalNow() - TimeSpan.FromHours(1);
+        await context.OpenAsync(new() { StartTime = startTime });
+        context.Time.SetUtcNow(context.Time.GetUtcNow() + TimeSpan.FromHours(3));
+        context.Time.Advance(TimeSpan.FromSeconds(5));
+        context.ViewModel.DraftText = "event";
+        context.Time.Advance(TimeSpan.FromSeconds(30));
+        context.ViewModel.AddMarkerCommand.Execute(null);
+        var entry = Assert.Single(context.ViewModel.Entries).Snapshot;
+        Assert.Equal(TimeSpan.FromHours(1) + TimeSpan.FromSeconds(5), entry.LiveTime);
+        Assert.True((startTime + entry.LiveTime).EqualsExact(entry.RealDateTime));
     }
 
     /// <summary>保存只读取行的已提交快照，不会把尚可取消的表格内容写入磁盘。</summary>
