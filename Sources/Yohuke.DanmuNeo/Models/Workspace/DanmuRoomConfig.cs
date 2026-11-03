@@ -5,7 +5,7 @@ namespace Yohuke.DanmuNeo.Models.Workspace;
 /// </summary>
 public sealed record DanmuRoomConfig
 {
-    /// <summary>当前账号在目标房间可发送的最大 UTF-16 预算；0 表示未知。</summary>
+    /// <summary>当前账号在目标房间可发送的平台加权额度；ASCII 计 1，非 ASCII 计 2，0 表示未知。</summary>
     public int Length { get; init; }
 
     /// <summary>

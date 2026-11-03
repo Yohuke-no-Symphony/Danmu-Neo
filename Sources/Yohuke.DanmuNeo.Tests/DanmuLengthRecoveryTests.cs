@@ -21,7 +21,7 @@ public class DanmuLengthRecoveryTests
             ReadAsync = (_, _, _, refresh) =>
             {
                 refreshes += refresh ? 1 : 0;
-                return Task.FromResult(new Models.Workspace.DanmuRoomConfig { Length = refresh ? 10 : 20 });
+                return Task.FromResult(new Models.Workspace.DanmuRoomConfig { Length = refresh ? 20 : 40 });
             }
         };
         var sender = new DanmuSendService(client, config);
@@ -37,15 +37,16 @@ public class DanmuLengthRecoveryTests
         Assert.Equal(result.Results.Count, records.Count);
         Assert.Equal(request.Contents[0].Body, Reassemble(result));
         Assert.Single(handler.Forms, form => form["msg"] == "【" + new string('中', 18) + "】");
-        Assert.All(handler.Forms.Skip(2), form => Assert.InRange(form["msg"].Length, 3, 10));
+        Assert.All(handler.Forms.Skip(2), form =>
+            Assert.InRange(DanmuMessageSegmenter.GetQuotaLength(form["msg"]), 6, 20));
     }
 
     /// <summary>配置刷新后仍不准确时，根据明确拒绝缩短分段，保留 Unicode 文字元素和符号。</summary>
     [Theory]
-    [InlineData("这是需要完整发送的中文长句，这是后续文字", 20, 10)]
-    [InlineData("甲👨‍👩‍👧‍👦乙👨‍👩‍👧‍👦丙", 40, 14)]
-    [InlineData("甲乙丙丁戊己", 20, 3)]
-    [InlineData("中中中中中中中中中中中中中中中中中中中中👨‍👩‍👧‍👦尾", 20, 14)]
+    [InlineData("这是需要完整发送的中文长句，这是后续文字", 40, 20)]
+    [InlineData("甲👨‍👩‍👧‍👦乙👨‍👩‍👧‍👦丙", 80, 28)]
+    [InlineData("甲乙丙丁戊己", 40, 6)]
+    [InlineData("中中中中中中中中中中中中中中中中中中中中👨‍👩‍👧‍👦尾", 40, 28)]
     public async Task StaleLimitIsReducedUntilRejectedContentCanBeDelivered(string body, int configuredLimit, int actualLimit)
     {
         using var handler = new DanmuSendHttpHandler { MaximumMessageLength = actualLimit, ResponseJson = "{\"code\":0}" };
@@ -61,7 +62,8 @@ public class DanmuLengthRecoveryTests
         Assert.All(handler.Forms.Skip(1), form => Assert.True(form["msg"].Length < handler.Forms[0]["msg"].Length));
         Assert.Equal(body, Reassemble(result));
         Assert.All(result.Results, part => Assert.True(part.IsAccepted));
-        Assert.All(result.Results, part => Assert.InRange(part.Record.Content.Length, 3, actualLimit));
+        Assert.All(result.Results, part =>
+            Assert.InRange(DanmuMessageSegmenter.GetQuotaLength(part.Record.Content), 6, actualLimit));
         Assert.InRange(handler.RequestCount - result.Results.Count, 1, 8);
     }
 
@@ -110,7 +112,8 @@ public class DanmuLengthRecoveryTests
         Assert.Same(first.Progress, result.Progress);
         Assert.Equal(request.Contents[0].Body, Reassemble(result));
         Assert.Single(handler.Forms, form => form["msg"] == "【" + new string('中', 9) + "】");
-        Assert.All(handler.Forms.Skip(sentBeforeContinuation), form => Assert.InRange(form["msg"].Length, 3, 11));
+        Assert.All(handler.Forms.Skip(sentBeforeContinuation), form =>
+            Assert.InRange(DanmuMessageSegmenter.GetQuotaLength(form["msg"]), 6, 22));
     }
 
     private static DanmuSendRequest CreateRequest(string body)

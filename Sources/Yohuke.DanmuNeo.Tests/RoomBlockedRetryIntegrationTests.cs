@@ -20,7 +20,7 @@ public class RoomBlockedRetryIntegrationTests
         transport.Results.Enqueue(new() { FailureKind = DanmuSendFailureKind.Blocked });
         transport.Results.Enqueue(new());
         transport.Results.Enqueue(new() { FailureKind = DanmuSendFailureKind.Blocked });
-        using var room = CreateRoom(transport, limit: 6);
+        using var room = CreateRoom(transport, limit: 12);
         room.InputDraft = "甲乙丙丁戊己庚辛";
 
         await room.SendDraftAsync();
@@ -173,7 +173,7 @@ public class RoomBlockedRetryIntegrationTests
     }
 
     private static LiveRoomTabViewModel CreateRoom(ScriptedDanmuSendTransport transport,
-        AppSettings? settings = null, int limit = 20, TimeProvider? clock = null)
+        AppSettings? settings = null, int limit = 40, TimeProvider? clock = null)
     {
         settings ??= new() { SendIntervalMs = 0 };
         var account = new BilibiliAccount { Id = "account", Cookie = "test-cookie" };

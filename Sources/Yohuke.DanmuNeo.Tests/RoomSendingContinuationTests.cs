@@ -16,7 +16,7 @@ public class RoomSendingContinuationTests
         var transport = new ScriptedDanmuSendTransport();
         transport.Results.Enqueue(new());
         transport.Results.Enqueue(new() { FailureKind = DanmuSendFailureKind.Blocked });
-        using var room = CreateRoom(transport, 6);
+        using var room = CreateRoom(transport, 12);
         room.InputDraft = "甲乙丙丁戊己庚辛";
         await room.SendDraftAsync();
         Assert.True(room.IsDraftSendFailed);
@@ -40,7 +40,7 @@ public class RoomSendingContinuationTests
         var transport = new ScriptedDanmuSendTransport();
         transport.Results.Enqueue(new());
         transport.Results.Enqueue(new() { FailureKind = DanmuSendFailureKind.Blocked });
-        using var room = CreateRoom(transport, 6);
+        using var room = CreateRoom(transport, 12);
         room.InputDraft = "甲乙丙丁戊己";
         await room.SendDraftAsync();
         room.InputDraft = "修改";
@@ -58,7 +58,7 @@ public class RoomSendingContinuationTests
         var transport = new ScriptedDanmuSendTransport();
         transport.Results.Enqueue(new());
         transport.Results.Enqueue(new() { FailureKind = DanmuSendFailureKind.Blocked });
-        using var room = CreateRoom(transport, 20);
+        using var room = CreateRoom(transport, 40);
         room.LyricInput = "[00:01]原文\n[00:10]下一句";
         room.TranslatedLyricInput = "[00:01]译文";
         room.ApplyLyric();
@@ -83,7 +83,7 @@ public class RoomSendingContinuationTests
         var transport = new ScriptedDanmuSendTransport();
         transport.Results.Enqueue(new());
         transport.Results.Enqueue(new() { FailureKind = DanmuSendFailureKind.Blocked });
-        using var room = CreateRoom(transport, 20);
+        using var room = CreateRoom(transport, 40);
         room.LyricInput = "[00:01]原文";
         room.TranslatedLyricInput = "[00:01]译文";
         room.ApplyLyric();

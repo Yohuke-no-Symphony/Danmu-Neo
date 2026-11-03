@@ -209,7 +209,7 @@ public class AccountSendingIntegrationTests
         };
         var sender = new DanmuSendService(danmuConfigService: new FakeBilibiliDanmuConfigService
         {
-            Config = new() { Length = 4 }
+            Config = new() { Length = 8 }
         }, transport: transport, accountSessions: sessions);
 
         var result = await sender.SendAsync(CreateRequest("甲乙丙丁戊己"), account, new() { SendIntervalMs = 0 });

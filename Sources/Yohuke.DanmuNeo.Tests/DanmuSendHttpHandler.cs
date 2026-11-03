@@ -1,5 +1,6 @@
 using System.Net;
 using System.Threading;
+using Yohuke.DanmuNeo.Services;
 
 namespace Yohuke.DanmuNeo.Tests;
 
@@ -64,7 +65,8 @@ public sealed class DanmuSendHttpHandler : HttpMessageHandler
             .Select(parameter => parameter.Split('=', 2))
             .ToDictionary(pair => WebUtility.UrlDecode(pair[0]), pair => WebUtility.UrlDecode(pair[1])));
         var body = ResponseBodies.Count > 0 ? ResponseBodies.Dequeue() : ResponseJson;
-        if (MaximumMessageLength is { } limit && Forms[^1].TryGetValue("msg", out var message) && message.Length > limit)
+        if (MaximumMessageLength is { } limit && Forms[^1].TryGetValue("msg", out var message) &&
+            DanmuMessageSegmenter.GetQuotaLength(message) > limit)
         {
             body = "{\"code\":10020,\"message\":\"\",\"msg\":\"超出限制长度\"}";
         }

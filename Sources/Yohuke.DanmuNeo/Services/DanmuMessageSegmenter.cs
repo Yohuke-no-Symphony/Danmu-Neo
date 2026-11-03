@@ -4,7 +4,7 @@ using Yohuke.DanmuNeo.I18n;
 
 namespace Yohuke.DanmuNeo.Services;
 
-/// <summary>按保守 UTF-16 预算分段，并保护完整的 Unicode 文字元素。</summary>
+/// <summary>按平台加权额度分段，并保护完整的 Unicode 文字元素。</summary>
 public static class DanmuMessageSegmenter
 {
     private const string CONTINUATION_MARK = "…";
@@ -32,12 +32,21 @@ public static class DanmuMessageSegmenter
 
     internal static int? GetReducedLength(DanmuMessageContent content, DanmuSendSegment rejected, int refreshedLimit)
     {
-        var minimumLength = content.Prefix.Length + content.Suffix.Length +
-                            StringInfo.GetNextTextElementLength(content.Body.AsSpan(rejected.BodyStart));
-        var reducedLength = refreshedLimit > 0 && refreshedLimit < rejected.Message.Length
+        var firstElementLength = StringInfo.GetNextTextElementLength(content.Body.AsSpan(rejected.BodyStart));
+        var minimumLength = GetQuotaLength(content.Prefix) + GetQuotaLength(content.Suffix) +
+                            GetQuotaLength(content.Body.AsSpan(rejected.BodyStart, firstElementLength));
+        var rejectedLength = GetQuotaLength(rejected.Message);
+        var rejectedBodyLength = GetQuotaLength(content.Body.AsSpan(rejected.BodyStart, rejected.BodyLength));
+        var reducedLength = refreshedLimit > 0 && refreshedLimit < rejectedLength
             ? refreshedLimit
-            : Math.Max(minimumLength, rejected.Message.Length - Math.Max(1, rejected.BodyLength / 2));
-        return reducedLength >= minimumLength && reducedLength < rejected.Message.Length ? reducedLength : null;
+            : Math.Max(minimumLength, rejectedLength - Math.Max(1, rejectedBodyLength / 2));
+        return reducedLength >= minimumLength && reducedLength < rejectedLength ? reducedLength : null;
+    }
+
+    /// <summary>计算平台额度：ASCII 字符计 1，非 ASCII UTF-16 码元计 2。</summary>
+    internal static int GetQuotaLength(string value)
+    {
+        return GetQuotaLength(value.AsSpan());
     }
 
     private static DanmuSendSegment CreateSegment(DanmuMessageContent content, int start, int rangeEnd,
@@ -45,12 +54,16 @@ public static class DanmuMessageSegmenter
     {
         var remaining = content.Body[start..rangeEnd];
         var firstElementLength = StringInfo.GetNextTextElementLength(remaining);
-        var minimumLength = content.Prefix.Length + content.Suffix.Length + firstElementLength;
+        var prefixLength = GetQuotaLength(content.Prefix);
+        var suffixLength = GetQuotaLength(content.Suffix);
+        var firstElementQuota = GetQuotaLength(remaining.AsSpan(0, firstElementLength));
+        var minimumLength = prefixLength + suffixLength + firstElementQuota;
         maxLength = Math.Min(maxLength, Math.Max(preferredLength ?? maxLength, minimumLength));
-        var bodyBudget = maxLength - content.Prefix.Length - content.Suffix.Length;
-        var continuation = start > 0 && bodyBudget > firstElementLength
+        var bodyBudget = maxLength - prefixLength - suffixLength;
+        var continuationLength = GetQuotaLength(CONTINUATION_MARK);
+        var continuation = start > 0 && bodyBudget >= continuationLength + firstElementQuota
             ? CONTINUATION_MARK : "";
-        var budget = bodyBudget - continuation.Length;
+        var budget = bodyBudget - GetQuotaLength(continuation);
         var boundaries = StringInfo.ParseCombiningCharacters(remaining);
         var end = 0;
         var wireLength = 0;
@@ -58,8 +71,9 @@ public static class DanmuMessageSegmenter
         for (var index = 0; index < boundaries.Length; index++)
         {
             var boundary = index + 1 < boundaries.Length ? boundaries[index + 1] : remaining.Length;
-            var separatorLength = insertZeroWidthSpaces && ShouldInsertZeroWidthSpace(remaining, end) ? 1 : 0;
-            var nextWireLength = wireLength + boundary - end + separatorLength;
+            var separatorLength = insertZeroWidthSpaces && ShouldInsertZeroWidthSpace(remaining, end)
+                ? GetQuotaLength(ZERO_WIDTH_SPACE) : 0;
+            var nextWireLength = wireLength + GetQuotaLength(remaining.AsSpan(end, boundary - end)) + separatorLength;
             if (nextWireLength > budget)
             {
                 break;
@@ -108,5 +122,20 @@ public static class DanmuMessageSegmenter
             start = end;
         }
         return result.ToString();
+    }
+
+    private static int GetQuotaLength(ReadOnlySpan<char> value)
+    {
+        var length = 0;
+        foreach (var character in value)
+        {
+            length += character <= '\u007F' ? 1 : 2;
+        }
+        return length;
+    }
+
+    private static int GetQuotaLength(char value)
+    {
+        return value <= '\u007F' ? 1 : 2;
     }
 }

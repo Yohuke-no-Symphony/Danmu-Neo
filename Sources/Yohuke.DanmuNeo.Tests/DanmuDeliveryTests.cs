@@ -16,7 +16,7 @@ public class DanmuDeliveryTests
     public async Task SegmentsUseAccountLimitAndRepeatCompleteMarks()
     {
         var transport = new ScriptedDanmuSendTransport();
-        var config = new FakeBilibiliDanmuConfigService { Config = new() { Length = 8 } };
+        var config = new FakeBilibiliDanmuConfigService { Config = new() { Length = 16 } };
         var service = new DanmuSendService(danmuConfigService: config, transport: transport);
         var request = CreateRequest("甲乙丙丁戊己庚辛");
 
@@ -24,14 +24,14 @@ public class DanmuDeliveryTests
 
         Assert.True(result.IsComplete);
         Assert.Equal(["【甲乙丙丁戊己】", "【…庚辛】"], transport.Messages);
-        Assert.All(transport.Messages, text => Assert.True(text.Length <= 8));
+        Assert.All(transport.Messages, text => Assert.True(DanmuMessageSegmenter.GetQuotaLength(text) <= 16));
     }
 
     /// <summary>分段不会拆开代理对、组合字符或连接表情，也不会遗漏正文。</summary>
     [Theory]
-    [InlineData("😀😀😀", 7)]
-    [InlineData("e\u0301e\u0301e\u0301", 7)]
-    [InlineData("👩‍💻👩‍💻", 10)]
+    [InlineData("😀😀😀", 14)]
+    [InlineData("e\u0301e\u0301e\u0301", 14)]
+    [InlineData("👩‍💻👩‍💻", 20)]
     public async Task SegmentationKeepsTextElementsAndAllBodyContent(string body, int limit)
     {
         var transport = new ScriptedDanmuSendTransport();
@@ -44,7 +44,7 @@ public class DanmuDeliveryTests
 
         Assert.True(result.IsComplete);
         Assert.Equal(body, string.Concat(transport.Messages.Select(text => text[1..^1].TrimStart('…'))));
-        Assert.All(transport.Messages, text => Assert.True(text.Length <= limit));
+        Assert.All(transport.Messages, text => Assert.True(DanmuMessageSegmenter.GetQuotaLength(text) <= limit));
         Assert.All(transport.Messages, text => Assert.DoesNotContain('�', text));
     }
 
@@ -101,7 +101,7 @@ public class DanmuDeliveryTests
         transport.Results.Enqueue(new() { FailureKind = failure, ApiCode = failure == DanmuSendFailureKind.Rejected ? 10030 : null });
         var service = new DanmuSendService(danmuConfigService: new FakeBilibiliDanmuConfigService
         {
-            Config = new() { Length = 6 }
+            Config = new() { Length = 12 }
         }, transport: transport);
 
         var result = await service.SendAsync(CreateRequest("甲乙丙丁戊己庚辛"), CreateAccount(),
@@ -118,13 +118,13 @@ public class DanmuDeliveryTests
         var transport = new ScriptedDanmuSendTransport();
         transport.Results.Enqueue(new());
         transport.Results.Enqueue(new() { FailureKind = DanmuSendFailureKind.Blocked });
-        var config = new FakeBilibiliDanmuConfigService { Config = new() { Length = 6 } };
+        var config = new FakeBilibiliDanmuConfigService { Config = new() { Length = 12 } };
         var service = new DanmuSendService(danmuConfigService: config, transport: transport);
         var request = CreateRequest("甲乙丙丁戊己庚辛壬癸");
         var settings = new AppSettings { SendIntervalMs = 0, RetryBlockedWithZeroWidthSpace = false };
         var first = await service.SendAsync(request, CreateAccount(), settings);
         var failedId = first.Results.Last().Record.SendRecordId;
-        config.Config = new() { Length = 5 };
+        config.Config = new() { Length = 10 };
 
         var second = await service.SendAsync(request, CreateAccount(), settings, first.Progress);
 
@@ -144,7 +144,7 @@ public class DanmuDeliveryTests
         transport.Results.Enqueue(new() { FailureKind = DanmuSendFailureKind.Blocked });
         var service = new DanmuSendService(danmuConfigService: new FakeBilibiliDanmuConfigService
         {
-            Config = new() { Length = 6 }
+            Config = new() { Length = 12 }
         }, transport: transport);
         var request = CreateRequest("甲乙丙丁戊己");
         var settings = new AppSettings { SendIntervalMs = 0, RetryBlockedWithZeroWidthSpace = false };
@@ -227,7 +227,7 @@ public class DanmuDeliveryTests
         var transport = new ScriptedDanmuSendTransport();
         var service = new DanmuSendService(danmuConfigService: new FakeBilibiliDanmuConfigService
         {
-            Config = new() { Length = 4 }
+            Config = new() { Length = 8 }
         }, transport: transport);
         var result = await service.SendAsync(CreateRequest("👩‍💻"), CreateAccount(), new());
         Assert.False(result.IsComplete);
@@ -263,7 +263,7 @@ public class DanmuDeliveryTests
         var transport = new ScriptedDanmuSendTransport { BeforeResponse = cancellation.Cancel };
         var service = new DanmuSendService(danmuConfigService: new FakeBilibiliDanmuConfigService
         {
-            Config = new() { Length = 6 }
+            Config = new() { Length = 12 }
         }, transport: transport);
         var request = CreateRequest("甲乙丙丁戊己");
         var account = CreateAccount();

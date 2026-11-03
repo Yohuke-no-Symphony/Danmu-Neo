@@ -6,6 +6,33 @@ namespace Yohuke.DanmuNeo.Tests;
 /// <summary>验证零宽空格重分段的文字元素、长度预算与原文范围。</summary>
 public class DanmuZeroWidthSegmenterTests
 {
+    /// <summary>ASCII 使用一个额度，非 ASCII UTF-16 码元使用两个额度。</summary>
+    [Theory]
+    [InlineData("ASCII", 5)]
+    [InlineData("中文", 4)]
+    [InlineData("A中B文", 6)]
+    [InlineData("\u200B", 2)]
+    [InlineData("😀", 4)]
+    public void CalculatesPlatformQuota(string text, int expected)
+    {
+        Assert.Equal(expected, DanmuMessageSegmenter.GetQuotaLength(text));
+    }
+
+    /// <summary>接口额度 80 可容纳 80 个 ASCII 或 40 个中文字符，后续内容进入下一段。</summary>
+    [Fact]
+    public void SegmentsAsciiAndChineseAgainstSamePlatformLimit()
+    {
+        var ascii = DanmuMessageSegmenter.Next(new() { Body = new string('A', 81) }, 0, 80);
+        var chinese = DanmuMessageSegmenter.Next(new() { Body = new string('中', 41) }, 0, 80);
+        var mixed = DanmuMessageSegmenter.Next(new() { Body = new string('A', 40) + new string('中', 21) }, 0, 80);
+
+        Assert.Equal(80, ascii.BodyLength);
+        Assert.Equal(40, chinese.BodyLength);
+        Assert.Equal(60, mixed.BodyLength);
+        Assert.All([ascii, chinese, mixed], segment =>
+            Assert.InRange(DanmuMessageSegmenter.GetQuotaLength(segment.Message), 1, 80));
+    }
+
     /// <summary>只在完整正文文字元素之间插入，保留原有零宽空格和完整标识符。</summary>
     [Theory]
     [InlineData("你好", "你\u200B好")]
@@ -59,8 +86,8 @@ public class DanmuZeroWidthSegmenterTests
     {
         var content = new DanmuMessageContent { Body = "前缀甲乙丙丁尾巴", Prefix = "【", Suffix = "】" };
 
-        var first = DanmuMessageSegmenter.NextWithZeroWidthSpaces(content, 2, 6, 6);
-        var second = DanmuMessageSegmenter.NextWithZeroWidthSpaces(content, first.BodyStart + first.BodyLength, 6, 6);
+        var first = DanmuMessageSegmenter.NextWithZeroWidthSpaces(content, 2, 6, 12);
+        var second = DanmuMessageSegmenter.NextWithZeroWidthSpaces(content, first.BodyStart + first.BodyLength, 6, 12);
 
         Assert.Equal("【…甲\u200B乙】", first.Message);
         Assert.Equal(2, first.BodyStart);
@@ -73,9 +100,9 @@ public class DanmuZeroWidthSegmenterTests
 
     /// <summary>插入字符消耗实际长度预算，拆分后原文范围连续且完整。</summary>
     [Theory]
-    [InlineData("甲乙丙丁戊己", 8)]
-    [InlineData("😀👩‍💻e\u0301甲乙", 12)]
-    [InlineData("👨‍👩‍👧‍👦甲乙丙丁", 16)]
+    [InlineData("甲乙丙丁戊己", 16)]
+    [InlineData("😀👩‍💻e\u0301甲乙", 24)]
+    [InlineData("👨‍👩‍👧‍👦甲乙丙丁", 32)]
     public void ExpandedSegmentsFitBudgetWithoutLosingOrSplittingTextElements(string body, int limit)
     {
         var content = new DanmuMessageContent { Body = body, Prefix = "【♪", Suffix = "】" };
@@ -96,7 +123,7 @@ public class DanmuZeroWidthSegmenterTests
             Assert.True(segment.BodyLength > 0);
             Assert.Contains(segment.BodyStart, boundaries);
             Assert.Contains(segment.BodyStart + segment.BodyLength, boundaries);
-            Assert.InRange(segment.Message.Length, 1, limit);
+            Assert.InRange(DanmuMessageSegmenter.GetQuotaLength(segment.Message), 1, limit);
             Assert.StartsWith(content.Prefix, segment.Message);
             Assert.EndsWith(content.Suffix, segment.Message);
             Assert.False(wireBody.StartsWith('\u200B'));
@@ -117,10 +144,10 @@ public class DanmuZeroWidthSegmenterTests
     {
         var content = new DanmuMessageContent { Body = "甲乙", Prefix = "【", Suffix = "】" };
 
-        var segment = DanmuMessageSegmenter.NextWithZeroWidthSpaces(content, 0, 2, 5);
+        var segment = DanmuMessageSegmenter.NextWithZeroWidthSpaces(content, 0, 2, 10);
 
         Assert.Equal("【甲\u200B乙】", segment.Message);
-        Assert.Equal(5, segment.Message.Length);
+        Assert.Equal(10, DanmuMessageSegmenter.GetQuotaLength(segment.Message));
         Assert.Equal(2, segment.BodyLength);
     }
 
@@ -130,8 +157,8 @@ public class DanmuZeroWidthSegmenterTests
     {
         var content = new DanmuMessageContent { Body = "甲乙", Prefix = "【", Suffix = "】" };
 
-        var first = DanmuMessageSegmenter.NextWithZeroWidthSpaces(content, 0, 2, 4);
-        var second = DanmuMessageSegmenter.NextWithZeroWidthSpaces(content, 1, 2, 4);
+        var first = DanmuMessageSegmenter.NextWithZeroWidthSpaces(content, 0, 2, 8);
+        var second = DanmuMessageSegmenter.NextWithZeroWidthSpaces(content, 1, 2, 8);
 
         Assert.Equal("【甲】", first.Message);
         Assert.Equal("【…乙】", second.Message);
@@ -145,8 +172,8 @@ public class DanmuZeroWidthSegmenterTests
     {
         var content = new DanmuMessageContent { Body = "甲乙，丙丁戊己", Prefix = "【", Suffix = "】" };
 
-        var first = DanmuMessageSegmenter.NextWithZeroWidthSpaces(content, 0, content.Body.Length, 10);
-        var second = DanmuMessageSegmenter.NextWithZeroWidthSpaces(content, first.BodyLength, content.Body.Length, 10);
+        var first = DanmuMessageSegmenter.NextWithZeroWidthSpaces(content, 0, content.Body.Length, 20);
+        var second = DanmuMessageSegmenter.NextWithZeroWidthSpaces(content, first.BodyLength, content.Body.Length, 20);
 
         Assert.Equal("【甲\u200B乙\u200B，】", first.Message);
         Assert.Equal(3, first.BodyLength);
@@ -161,8 +188,8 @@ public class DanmuZeroWidthSegmenterTests
         var content = new DanmuMessageContent { Body = "甲乙丙丁", Prefix = "【", Suffix = "】" };
         var emojiContent = content with { Body = "😀甲" };
 
-        var segment = DanmuMessageSegmenter.NextWithZeroWidthSpaces(content, 0, 4, 20, 5);
-        var emojiSegment = DanmuMessageSegmenter.NextWithZeroWidthSpaces(emojiContent, 0, emojiContent.Body.Length, 20, 2);
+        var segment = DanmuMessageSegmenter.NextWithZeroWidthSpaces(content, 0, 4, 40, 10);
+        var emojiSegment = DanmuMessageSegmenter.NextWithZeroWidthSpaces(emojiContent, 0, emojiContent.Body.Length, 40, 4);
 
         Assert.Equal("【甲\u200B乙】", segment.Message);
         Assert.Equal(2, segment.BodyLength);
@@ -172,8 +199,8 @@ public class DanmuZeroWidthSegmenterTests
 
     /// <summary>硬上限无法容纳一个完整文字元素时明确失败。</summary>
     [Theory]
-    [InlineData("甲", 2)]
-    [InlineData("👩‍💻", 6)]
+    [InlineData("甲", 4)]
+    [InlineData("👩‍💻", 12)]
     public void InsufficientBudgetRejectsWholeTextElement(string body, int limit)
     {
         var content = new DanmuMessageContent { Body = body, Prefix = "【", Suffix = "】" };

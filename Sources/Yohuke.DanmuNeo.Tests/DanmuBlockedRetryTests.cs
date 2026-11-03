@@ -116,7 +116,7 @@ public class DanmuBlockedRetryTests
         var transport = new ScriptedDanmuSendTransport();
         transport.Results.Enqueue(new());
         transport.Results.Enqueue(new() { FailureKind = DanmuSendFailureKind.Blocked });
-        var sender = CreateSender(transport, 8);
+        var sender = CreateSender(transport, 16);
         var records = new List<DanmuFeedItem>();
         sender.RecordCreated += (_, record) => records.Add(record);
         var request = CreateRequest("甲乙丙丁戊己庚辛壬癸子丑寅卯");
@@ -131,7 +131,8 @@ public class DanmuBlockedRetryTests
         Assert.Equal([1, 2, 1, 1], result.Results.Select(part => part.AttemptCount));
         Assert.Equal(4, records.Count);
         Assert.All(records, record => Assert.True(record.IsSendAccepted));
-        Assert.All(transport.Messages, message => Assert.InRange(message.Length, 1, 8));
+        Assert.All(transport.Messages, message =>
+            Assert.InRange(DanmuMessageSegmenter.GetQuotaLength(message), 1, 16));
         Assert.Equal(request.Contents[0].Body, Reassemble(result));
         Assert.Equal(request.Contents[0].Body.Length, result.Progress.GetAcceptedLength(0));
     }
@@ -144,7 +145,7 @@ public class DanmuBlockedRetryTests
         transport.Results.Enqueue(new() { FailureKind = DanmuSendFailureKind.Blocked });
         transport.Results.Enqueue(new());
         transport.Results.Enqueue(new() { FailureKind = DanmuSendFailureKind.Blocked });
-        var sender = CreateSender(transport, 6);
+        var sender = CreateSender(transport, 12);
         var account = CreateAccount();
         var request = CreateRequest("甲乙丙丁戊己庚辛");
         var settings = new AppSettings { SendIntervalMs = 0 };
@@ -178,7 +179,7 @@ public class DanmuBlockedRetryTests
         transport.Results.Enqueue(new() { FailureKind = DanmuSendFailureKind.Blocked });
         var request = CreateRequest("甲乙丙丁戊己");
 
-        var result = await CreateSender(transport, 6).SendAsync(request, CreateAccount(),
+        var result = await CreateSender(transport, 12).SendAsync(request, CreateAccount(),
             new() { SendIntervalMs = 0 });
 
         Assert.True(result.IsComplete);
@@ -248,13 +249,13 @@ public class DanmuBlockedRetryTests
     [InlineData(true)]
     public async Task StaleLengthLimitShrinksTransformedSegmentsUntilAccepted(bool refreshedLimitIsAccurate)
     {
-        using var handler = new DanmuSendHttpHandler { ResponseJson = """{"code":0}""", MaximumMessageLength = 8 };
+        using var handler = new DanmuSendHttpHandler { ResponseJson = """{"code":0}""", MaximumMessageLength = 16 };
         handler.ResponseBodies.Enqueue("""{"code":0,"msg":"f"}""");
         using var client = new HttpClient(handler);
         var config = new FakeBilibiliDanmuConfigService();
         config.ReadAsync = (_, _, _, refresh) => Task.FromResult(new DanmuRoomConfig
         {
-            Length = refresh && refreshedLimitIsAccurate ? 8 : 20
+            Length = refresh && refreshedLimitIsAccurate ? 16 : 40
         });
         var sender = new DanmuSendService(client, config);
         var request = CreateRequest("甲乙丙丁戊己");
@@ -269,7 +270,8 @@ public class DanmuBlockedRetryTests
         Assert.All(transformedForms,
             form => Assert.Contains("\u200B", form["msg"], StringComparison.Ordinal));
         Assert.Equal(refreshedLimitIsAccurate ? "【…丁\u200B戊\u200B己】" : "【…己】", handler.Forms[^1]["msg"]);
-        Assert.All(result.Results, part => Assert.InRange(part.Record.Content.Length, 1, 8));
+        Assert.All(result.Results, part =>
+            Assert.InRange(DanmuMessageSegmenter.GetQuotaLength(part.Record.Content), 1, 16));
         Assert.Equal(2, config.GetRequests.Count);
         Assert.Equal(request.Contents[0].Body, Reassemble(result));
         Assert.Equal(refreshedLimitIsAccurate ? 3 : 4, result.Results[0].AttemptCount);
@@ -283,7 +285,7 @@ public class DanmuBlockedRetryTests
         transport.Results.Enqueue(new() { FailureKind = DanmuSendFailureKind.Blocked });
         transport.Results.Enqueue(new() { FailureKind = DanmuSendFailureKind.LengthExceeded });
 
-        var result = await CreateSender(transport, 8).SendAsync(CreateRequest("👩‍💻甲"), CreateAccount(),
+        var result = await CreateSender(transport, 16).SendAsync(CreateRequest("👩‍💻甲"), CreateAccount(),
             new() { SendIntervalMs = 0 });
 
         Assert.False(result.IsComplete);
@@ -355,7 +357,7 @@ public class DanmuBlockedRetryTests
                 cancellation.Cancel();
             }
         };
-        var sender = CreateSender(transport, 6);
+        var sender = CreateSender(transport, 12);
         var account = CreateAccount();
         var request = CreateRequest("甲乙丙丁戊己");
         var progress = new DanmuDeliveryProgress(request, account);
@@ -415,7 +417,7 @@ public class DanmuBlockedRetryTests
         };
         var sender = new DanmuSendService(danmuConfigService: new FakeBilibiliDanmuConfigService
         {
-            Config = new() { Length = 6 }
+            Config = new() { Length = 12 }
         }, transport: transport, accountSessions: sessions);
 
         var result = await sender.SendAsync(CreateRequest("甲乙丙丁戊己"), account, new() { SendIntervalMs = 0 });
@@ -427,7 +429,7 @@ public class DanmuBlockedRetryTests
         Assert.Equal(DanmuSendFailureKind.LocalFailure, result.Results[1].FailureKind);
     }
 
-    private static DanmuSendService CreateSender(ScriptedDanmuSendTransport transport, int limit = 20,
+    private static DanmuSendService CreateSender(ScriptedDanmuSendTransport transport, int limit = 40,
         TimeProvider? clock = null)
     {
         return new(danmuConfigService: new FakeBilibiliDanmuConfigService { Config = new() { Length = limit } },

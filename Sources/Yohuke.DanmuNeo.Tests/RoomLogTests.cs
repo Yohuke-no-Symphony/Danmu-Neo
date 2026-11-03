@@ -30,7 +30,7 @@ public class RoomLogTests
         using var client = new HttpClient(handler);
         var configuration = new FakeBilibiliDanmuConfigService
         {
-            Config = new() { Length = 20, Current = new() { Color = 255, Mode = 5 } }
+            Config = new() { Length = 40, Current = new() { Color = 255, Mode = 5 } }
         };
         var sender = new DanmuSendService(client, configuration);
         using var log = new AppLogService();
