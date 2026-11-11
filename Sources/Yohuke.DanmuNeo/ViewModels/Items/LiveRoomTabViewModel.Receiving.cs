@@ -114,7 +114,6 @@ public partial class LiveRoomTabViewModel
             if (ReferenceEquals(socket, activeListenSocket) && !cancellationToken.IsCancellationRequested)
             {
                 log?.SetDiagnosticError(source, exception);
-                PostListenerConnectionStatus(socket, "Room.Reconnecting");
             }
         };
         socket.Disconnected += onDisconnected;
@@ -392,6 +391,10 @@ public partial class LiveRoomTabViewModel
             MedalName = message.MedalName,
             MedalLevel = message.MedalLevel,
             MedalGuardLevel = message.MedalGuardLevel,
+            ReplyUid = message.ReplyUid,
+            ReplyUserName = message.ReplyUserName,
+            ReplyUserNameColor = message.ReplyUserNameColor,
+            ReplyIsMystery = message.ReplyIsMystery,
             Content = message.Content
         };
         var index = 0;
@@ -512,6 +515,7 @@ public partial class LiveRoomTabViewModel
         var initialCount = Math.Max(message.Quantity, message.BatchComboCount);
         var item = new DanmuFeedItem
         {
+            IsGift = true,
             RoomId = message.RoomId,
             Time = message.Timestamp > 0
                 ? DateTimeOffset.FromUnixTimeSeconds(message.Timestamp)
@@ -639,6 +643,7 @@ public partial class LiveRoomTabViewModel
         SuperChats.Insert(0, new()
         {
             MessageId = message.MessageId,
+            UserUid = message.Uid,
             Time = DateTimeOffset.FromUnixTimeSeconds(message.Timestamp),
             UserName = message.UserName,
             PriceText = message.PriceText,
@@ -708,6 +713,7 @@ public partial class LiveRoomTabViewModel
         {
             Kind = LivePaidEventKind.GuardPurchase,
             MessageId = message.MessageId,
+            UserUid = message.Uid,
             Time = message.Timestamp > 0 ? DateTimeOffset.FromUnixTimeSeconds(message.Timestamp) : DateTimeOffset.Now,
             UserName = message.UserName,
             GuardLevel = message.GuardLevel,

@@ -1,5 +1,6 @@
 using Yohuke.DanmuNeo.I18n;
 using System.Net.Http;
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using Yohuke.DanmuNeo.Apis;
 using Yohuke.DanmuNeo.Models.Workspace;
@@ -10,8 +11,10 @@ namespace Yohuke.DanmuNeo.Services;
 /// <summary>
 /// 提供主播头像拉取与本地缓存能力。
 /// </summary>
-public class AvatarCacheService : IRoomAvatarService, IDisposable
+public class AvatarCacheService : IRoomAvatarService, IDisposable, IAsyncDisposable
 {
+    private const int MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+    private static readonly TimeSpan DOWNLOAD_TIMEOUT = TimeSpan.FromSeconds(15);
     private static readonly HashSet<string> SUPPORTED_EXTENSIONS = new(StringComparer.OrdinalIgnoreCase)
     {
         ".jpg",
@@ -24,6 +27,24 @@ public class AvatarCacheService : IRoomAvatarService, IDisposable
     private readonly AppDirectoryService directoryService;
     private readonly HttpClient httpClient;
     private readonly bool disposeHttpClient;
+    private readonly ConcurrentDictionary<string, Lazy<Task<string>>> downloads = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, AvatarDownloadOwnerGate> ownerLocks = new(StringComparer.Ordinal);
+    private readonly SemaphoreSlim downloadSlots = new(4);
+    private readonly CancellationTokenSource lifetime = new();
+    private readonly object syncRoot = new();
+    private Task? disposal;
+    private bool isDisposed;
+
+    internal int ActiveOwnerGateCount
+    {
+        get
+        {
+            lock (syncRoot)
+            {
+                return ownerLocks.Count;
+            }
+        }
+    }
 
     /// <summary>
     /// 初始化头像缓存服务。
@@ -36,16 +57,21 @@ public class AvatarCacheService : IRoomAvatarService, IDisposable
     }
 
     /// <summary>
-    /// 释放内部 HTTP 客户端。
+    /// 开始取消和排空后台下载，排空后释放内部 HTTP 客户端。
     /// </summary>
     public void Dispose()
     {
+        _ = BeginDispose();
         GC.SuppressFinalize(this);
+    }
 
-        if (disposeHttpClient)
-        {
-            httpClient.Dispose();
-        }
+    /// <summary>
+    /// 取消并排空后台下载后释放内部 HTTP 客户端。
+    /// </summary>
+    public ValueTask DisposeAsync()
+    {
+        GC.SuppressFinalize(this);
+        return new(BeginDispose());
     }
 
     /// <summary>
@@ -184,44 +210,180 @@ public class AvatarCacheService : IRoomAvatarService, IDisposable
     {
         if (string.IsNullOrWhiteSpace(roomId) ||
             string.IsNullOrWhiteSpace(avatarUrl) ||
-            !Uri.TryCreate(avatarUrl, UriKind.Absolute, out var uri))
+            !Uri.TryCreate(avatarUrl, UriKind.Absolute, out var uri) || uri.Scheme is not ("https" or "http"))
         {
             return "";
         }
 
-        directoryService.EnsureDirectories();
-        var filePath = GetAvatarFilePath(roomId, avatarUrl);
-
-        if (File.Exists(filePath))
+        cancellationToken.ThrowIfCancellationRequested();
+        var filePath = GetAvatarFilePath(roomId, uri.AbsoluteUri);
+        Task<string> task;
+        lock (syncRoot)
         {
-            return filePath;
+            ObjectDisposedException.ThrowIf(isDisposed, this);
+            task = downloads.GetOrAdd(filePath, _ => new(() => DownloadAndRemoveAsync(roomId, uri, filePath),
+                LazyThreadSafetyMode.ExecutionAndPublication)).Value;
         }
+        return await task.WaitAsync(cancellationToken).ConfigureAwait(false);
+    }
 
+    private async Task<string> DownloadAndRemoveAsync(string roomId, Uri uri, string filePath)
+    {
+        var ownerKey = NormalizeFileNamePart(roomId);
+        var ownerGate = BorrowOwnerGate(ownerKey);
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            request.Headers.TryAddWithoutValidation("User-Agent", BaseApi.DEFAULT_USER_AGENT);
-            using var response = await httpClient.SendAsync(request, cancellationToken);
-            response.EnsureSuccessStatusCode();
-            var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
-
-            if (bytes.Length == 0)
+            await ownerGate.Semaphore.WaitAsync(lifetime.Token).ConfigureAwait(false);
+            try
             {
-                return "";
+                await downloadSlots.WaitAsync(lifetime.Token).ConfigureAwait(false);
+                try
+                {
+                    return await DownloadAsync(roomId, uri, filePath, lifetime.Token).ConfigureAwait(false);
+                }
+                finally
+                {
+                    downloadSlots.Release();
+                }
             }
-
-            await File.WriteAllBytesAsync(filePath, bytes, cancellationToken);
-            DeleteOldRoomAvatarFiles(roomId, filePath);
-            return filePath;
+            finally
+            {
+                ownerGate.Semaphore.Release();
+            }
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (lifetime.IsCancellationRequested)
         {
-            throw;
+            return "";
         }
-        catch (Exception exception)
+        catch (Exception exception) when (exception is HttpRequestException or IOException or
+                                           UnauthorizedAccessException or OperationCanceledException)
         {
             StartupLog.Append(Localization.Format("Services.Avatar.DownloadFailed", roomId), AppLogLevel.WARNING, Localization.Get("Services.Avatar.Source"), exception);
             return "";
+        }
+        finally
+        {
+            ReturnOwnerGate(ownerKey, ownerGate);
+            downloads.TryRemove(filePath, out _);
+        }
+    }
+
+    private AvatarDownloadOwnerGate BorrowOwnerGate(string ownerKey)
+    {
+        lock (syncRoot)
+        {
+            if (!ownerLocks.TryGetValue(ownerKey, out var gate))
+            {
+                gate = new();
+                ownerLocks.Add(ownerKey, gate);
+            }
+            gate.BorrowerCount++;
+            return gate;
+        }
+    }
+
+    private void ReturnOwnerGate(string ownerKey, AvatarDownloadOwnerGate gate)
+    {
+        lock (syncRoot)
+        {
+            gate.BorrowerCount--;
+            if (gate.BorrowerCount == 0)
+            {
+                ownerLocks.Remove(ownerKey);
+                gate.Semaphore.Dispose();
+            }
+        }
+    }
+
+    private async Task<string> DownloadAsync(string roomId, Uri uri, string filePath, CancellationToken cancellationToken)
+    {
+        if (File.Exists(filePath) && IsSupportedImage(await File.ReadAllBytesAsync(filePath, cancellationToken).ConfigureAwait(false)))
+        {
+            return filePath;
+        }
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(DOWNLOAD_TIMEOUT);
+        using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+        request.Headers.TryAddWithoutValidation("User-Agent", BaseApi.DEFAULT_USER_AGENT);
+        using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        if (response.Content.Headers.ContentLength > MAX_IMAGE_BYTES)
+        {
+            return "";
+        }
+        await using var stream = await response.Content.ReadAsStreamAsync(timeout.Token).ConfigureAwait(false);
+        using var image = new MemoryStream();
+        var buffer = new byte[8192];
+        int count;
+        while ((count = await stream.ReadAsync(buffer, timeout.Token).ConfigureAwait(false)) > 0)
+        {
+            if (image.Length + count > MAX_IMAGE_BYTES)
+            {
+                return "";
+            }
+            image.Write(buffer, 0, count);
+        }
+        var bytes = image.ToArray();
+        if (!IsSupportedImage(bytes))
+        {
+            return "";
+        }
+        Directory.CreateDirectory(directoryService.AvatarCacheDirectory);
+        var temporary = $"{filePath}.{Guid.NewGuid():N}.tmp";
+        try
+        {
+            await File.WriteAllBytesAsync(temporary, bytes, timeout.Token).ConfigureAwait(false);
+            timeout.Token.ThrowIfCancellationRequested();
+            File.Move(temporary, filePath, true);
+            DeleteOldRoomAvatarFiles(roomId, filePath);
+            return filePath;
+        }
+        finally
+        {
+            if (File.Exists(temporary))
+            {
+                File.Delete(temporary);
+            }
+        }
+    }
+
+    private static bool IsSupportedImage(ReadOnlySpan<byte> bytes)
+    {
+        return bytes.StartsWith(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }) ||
+               bytes.StartsWith(new byte[] { 255, 216, 255 }) || bytes.StartsWith("GIF87a"u8) || bytes.StartsWith("GIF89a"u8) ||
+               (bytes.Length >= 12 && bytes.StartsWith("RIFF"u8) && bytes[8..].StartsWith("WEBP"u8));
+    }
+
+    private Task BeginDispose()
+    {
+        lock (syncRoot)
+        {
+            if (disposal is not null)
+            {
+                return disposal;
+            }
+            isDisposed = true;
+            lifetime.Cancel();
+            var pending = downloads.Values.Where(value => value.IsValueCreated).Select(value => value.Value).ToArray();
+            disposal = DisposeAfterDownloadsAsync(pending);
+            return disposal;
+        }
+    }
+
+    private async Task DisposeAfterDownloadsAsync(Task<string>[] pending)
+    {
+        try
+        {
+            await Task.WhenAll(pending).ConfigureAwait(false);
+        }
+        finally
+        {
+            if (disposeHttpClient)
+            {
+                httpClient.Dispose();
+            }
+            downloadSlots.Dispose();
+            lifetime.Dispose();
         }
     }
 

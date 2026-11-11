@@ -31,7 +31,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable, IAsyncDis
     private readonly AppDirectoryService appDirectoryService;
     private readonly AppBackupService appBackupService;
     private readonly IRoomAvatarService avatarCacheService;
-    private readonly AvatarCacheService? ownedAvatarCacheService;
+    private readonly AvatarCacheService ownedAvatarCacheService;
+    private readonly UserAvatarService? ownedUserAvatarService;
+    private Task? userAvatarShutdownTask;
     private readonly EmoticonCacheService emoticonCacheService;
     private readonly IBilibiliLiveRoomSearchService liveRoomSearchService;
     private readonly IBilibiliModerationService moderationService;
@@ -75,7 +77,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable, IAsyncDis
         ILiveCaptureStore? liveCaptureStore = null,
         ILiveCaptureExportService? liveCaptureExportService = null,
         ILiveFrameCaptureService? frameCaptureService = null,
-        LiveMarkerServices? liveMarkerServices = null)
+        LiveMarkerServices? liveMarkerServices = null,
+        IUserAvatarService? userAvatars = null)
     {
         Log = log ?? new AppLogService();
         ownsLog = log is null;
@@ -100,8 +103,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable, IAsyncDis
             this.receivedDanmuArchiveService, this.accountSessions);
         danmuSendService = new(danmuConfigService: this.danmuConfigService, log: Log,
             accountSessions: this.accountSessions);
-        ownedAvatarCacheService = avatarCacheService is null ? new(appDirectoryService) : null;
-        this.avatarCacheService = avatarCacheService ?? ownedAvatarCacheService!;
+        ownedAvatarCacheService = new(appDirectoryService);
+        this.avatarCacheService = avatarCacheService ?? ownedAvatarCacheService;
+        ownedUserAvatarService = userAvatars is null ? new(appDirectoryService, ownedAvatarCacheService) : null;
+        UserAvatars = userAvatars ?? ownedUserAvatarService!;
         State = loadedState ?? stateService.Load();
         Settings = State.Settings;
         LanguageOptions = CreateLanguageOptions(Settings.Language);
@@ -187,6 +192,25 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable, IAsyncDis
     {
         IsSidebarCollapsed = !IsSidebarCollapsed;
         await SaveAsync();
+    }
+
+    /// <summary>供发送者头像与回复 badge 共享的用户头像服务。</summary>
+    public IUserAvatarService UserAvatars { get; }
+
+    /// <summary>是否显示普通弹幕、SC 及回复对象的头像。</summary>
+    public bool IsShowDanmuAvatars
+    {
+        get => Settings.ShowDanmuAvatars;
+        set
+        {
+            if (Settings.ShowDanmuAvatars == value)
+            {
+                return;
+            }
+
+            Settings.ShowDanmuAvatars = value;
+            OnPropertyChanged();
+        }
     }
 
     /// <summary>
@@ -1903,7 +1927,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable, IAsyncDis
         }
 
         livePlayerService.Dispose();
-        ownedAvatarCacheService?.Dispose();
+        _ = ShutdownUserAvatarsAsync();
         emoticonCacheService.Dispose();
         if (ownsLiveMarkerServices)
         {
@@ -1916,6 +1940,26 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable, IAsyncDis
         }
 
         GC.SuppressFinalize(this);
+    }
+
+    private Task ShutdownUserAvatarsAsync()
+    {
+        return userAvatarShutdownTask ??= CompleteUserAvatarShutdownAsync();
+    }
+
+    private async Task CompleteUserAvatarShutdownAsync()
+    {
+        try
+        {
+            if (ownedUserAvatarService is not null)
+            {
+                await ownedUserAvatarService.DisposeAsync().ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            await ownedAvatarCacheService.DisposeAsync().ConfigureAwait(false);
+        }
     }
 
     private BilibiliAccount? ResolveAccount(LiveRoomTabViewModel room)

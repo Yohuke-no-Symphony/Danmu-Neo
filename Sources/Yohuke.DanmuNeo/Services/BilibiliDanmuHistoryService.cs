@@ -34,7 +34,9 @@ public sealed class BilibiliDanmuHistoryService(HttpClient? httpClient = null) :
 
     internal static BilibiliDanmuMessage ParseItem(string roomId, BilibiliDanmuHistoryItem item)
     {
-        var medal = item.User?["medal"];
+        var medal = item.User?["medal"] as JObject;
+        var reply = item.Reply as JObject;
+        var medalGuardLevel = ReadNonNegativeInt(medal?["guard_level"]);
         var timestamp = item.Timestamp;
         if (timestamp > 253402300799)
         {
@@ -56,17 +58,21 @@ public sealed class BilibiliDanmuHistoryService(HttpClient? httpClient = null) :
             Uid = item.Uid,
             UserName = item.Nickname ?? "",
             Content = item.Text ?? "",
+            ReplyUid = Math.Max(0, ReadInteger(reply?["reply_mid"])),
+            ReplyUserName = ReadScalarText(reply?["reply_uname"]),
+            ReplyUserNameColor = ReadScalarText(reply?["reply_uname_color"]),
+            ReplyIsMystery = ReadScalarText(reply?["reply_is_mystery"]) is "1" or "True" or "true",
             IsRoomAdmin = item.IsAdmin?.ToString() is "1" or "True" or "true",
-            MedalName = medal?["name"]?.Value<string>() ?? "",
-            MedalLevel = medal?["level"]?.Value<int>() ?? 0,
-            MedalGuardLevel = medal?["guard_level"]?.Value<int>() ?? 0,
-            IsEmoticon = item.Emoticon?["text"]?.Value<string>() is { Length: > 0 }
+            MedalName = ReadScalarText(medal?["name"]),
+            MedalLevel = ReadNonNegativeInt(medal?["level"]),
+            MedalGuardLevel = medalGuardLevel is >= 1 and <= 3 ? medalGuardLevel : 0,
+            IsEmoticon = ReadScalarText(item.Emoticon?["text"]) is { Length: > 0 }
         };
         if (item.Emots is not null)
         {
             foreach (var mapping in item.Emots.Properties())
             {
-                var url = mapping.Value["url"]?.Value<string>();
+                var url = ReadScalarText((mapping.Value as JObject)?["url"]);
                 if (!string.IsNullOrWhiteSpace(url))
                 {
                     result.Emoticons.Add(new() { Text = mapping.Name, Url = url });
@@ -74,11 +80,29 @@ public sealed class BilibiliDanmuHistoryService(HttpClient? httpClient = null) :
             }
         }
 
-        if (result.IsEmoticon && item.Emoticon?["url"]?.Value<string>() is { Length: > 0 } emoticonUrl)
+        if (result.IsEmoticon && ReadScalarText(item.Emoticon?["url"]) is { Length: > 0 } emoticonUrl)
         {
             result.Emoticons.Add(new() { Text = result.Content, Url = emoticonUrl });
         }
 
         return result;
+    }
+
+    private static string ReadScalarText(JToken? token)
+    {
+        return token is JValue value ? Convert.ToString(value.Value, CultureInfo.InvariantCulture) ?? "" : "";
+    }
+
+    private static long ReadInteger(JToken? token)
+    {
+        return long.TryParse(ReadScalarText(token), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
+            ? value
+            : 0;
+    }
+
+    private static int ReadNonNegativeInt(JToken? token)
+    {
+        var value = ReadInteger(token);
+        return value is >= 0 and <= int.MaxValue ? (int)value : 0;
     }
 }

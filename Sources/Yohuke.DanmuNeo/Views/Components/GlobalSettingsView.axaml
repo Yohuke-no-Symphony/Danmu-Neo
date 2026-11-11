@@ -50,6 +50,9 @@
                 <CheckBox Content="{Loc Key=Settings.Appearance.WindowMenuOnMac}"
                           IsVisible="{Binding IsMacOS}"
                           IsChecked="{Binding UseWindowMenuOnMac}" />
+                <CheckBox x:Name="ShowDanmuAvatarsCheckBox"
+                          Content="{Loc Key=Settings.Appearance.ShowDanmuAvatars}"
+                          IsChecked="{Binding IsShowDanmuAvatars}" />
             </StackPanel>
         </Border>
 

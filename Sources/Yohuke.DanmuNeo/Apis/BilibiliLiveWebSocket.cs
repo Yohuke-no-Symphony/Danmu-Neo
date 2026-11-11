@@ -1,5 +1,4 @@
 using Yohuke.DanmuNeo.I18n;
-using System.Buffers;
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.IO.Compression;
@@ -9,8 +8,10 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Google.Protobuf;
 using Yohuke.DanmuNeo.Apis.Models.Bilibili;
 using Yohuke.DanmuNeo.Apis.Models.Common;
+using Yohuke.DanmuNeo.Apis.Protocols.Bilibili;
 using Yohuke.DanmuNeo.Services;
 
 namespace Yohuke.DanmuNeo.Apis;
@@ -25,6 +26,8 @@ public class BilibiliLiveWebSocket : BaseApi, ILiveDanmuSocket
     private const int CONNECTION_MONITOR_INTERVAL_SECONDS = 5;
     private const int CONNECTION_TIMEOUT_SECONDS = 75;
     private const long MAX_UNIX_TIMESTAMP_SECONDS = 253402300799;
+    private const int PACKET_HEADER_LENGTH = 16;
+    private const int MAX_PACKET_NESTING = 8;
     private const string URL_GET_DANMU_INFO = "https://api.live.bilibili.com/xlive/web-room/v1/index/getDanmuInfo";
 
     private static readonly Regex TL_PATTERN1 =
@@ -274,47 +277,90 @@ public class BilibiliLiveWebSocket : BaseApi, ILiveDanmuSocket
         }
     }
 
-    private void AnalysePackage(byte[] rawData)
+    internal void AnalysePackage(byte[] rawData)
     {
-        if (rawData.Length < 16)
+        AnalysePackages(rawData, 0);
+    }
+
+    private void AnalysePackages(ReadOnlySpan<byte> rawData, int nesting)
+    {
+        if (nesting > MAX_PACKET_NESTING)
         {
+            ReportProtocolError("packet", new InvalidDataException("Compressed packet nesting is too deep."));
             return;
         }
 
-        var packageLength = BinaryPrimitives.ReadInt32BigEndian(rawData.AsSpan(0, 4));
-        var version = BinaryPrimitives.ReadInt16BigEndian(rawData.AsSpan(6, 2));
-        var operation = BinaryPrimitives.ReadInt32BigEndian(rawData.AsSpan(8, 4));
-
-        if (operation == 3)
+        var offset = 0;
+        while (offset < rawData.Length)
         {
-            return;
-        }
+            var remaining = rawData[offset..];
+            if (remaining.Length < PACKET_HEADER_LENGTH)
+            {
+                ReportProtocolError("packet", new InvalidDataException("Packet header is truncated."));
+                return;
+            }
 
-        if (rawData.Length > packageLength && packageLength > 0)
-        {
-            AnalysePackage(rawData[..packageLength]);
-            AnalysePackage(rawData[packageLength..]);
-            return;
-        }
+            var packageLength = BinaryPrimitives.ReadInt32BigEndian(remaining[..4]);
+            var headerLength = BinaryPrimitives.ReadUInt16BigEndian(remaining.Slice(4, 2));
+            if (headerLength < PACKET_HEADER_LENGTH || packageLength < headerLength || packageLength > remaining.Length)
+            {
+                ReportProtocolError("packet", new InvalidDataException("Packet length is invalid."));
+                return;
+            }
 
-        if (version == 3)
-        {
-            AnalysePackage(DecompressBrotli(rawData[16..]));
-            return;
-        }
+            var version = BinaryPrimitives.ReadUInt16BigEndian(remaining.Slice(6, 2));
+            var operation = BinaryPrimitives.ReadInt32BigEndian(remaining.Slice(8, 4));
+            var body = remaining.Slice(headerLength, packageLength - headerLength);
+            offset += packageLength;
+            if (operation != 5)
+            {
+                continue;
+            }
 
-        if ((version == 0 || version == 1) && operation == 5)
-        {
-            AnalyseBusinessPackage(rawData[16..]);
+            try
+            {
+                switch (version)
+                {
+                    case 0:
+                    case 1:
+                        AnalyseBusinessPackage(body.ToArray());
+                        break;
+                    case 2:
+                    case 3:
+                        AnalysePackages(DecompressPacket(body, version), nesting + 1);
+                        break;
+                    default:
+                        throw new InvalidDataException("Packet compression version is unsupported.");
+                }
+            }
+            catch (Exception error) when (IsProtocolError(error))
+            {
+                ReportProtocolError("packet", error);
+            }
         }
     }
 
     internal void AnalyseBusinessPackage(byte[] body)
     {
-        var text = Encoding.UTF8.GetString(body);
-        var json = JObject.Parse(text);
-        var command = json.Value<string>("cmd");
+        var command = "JSON";
+        try
+        {
+            var json = JObject.Parse(Encoding.UTF8.GetString(body));
+            if (json["cmd"]?.Type != JTokenType.String)
+            {
+                throw new InvalidDataException("Message command is missing or invalid.");
+            }
+            command = json.Value<string>("cmd")!;
+            AnalyseBusinessMessage(json, command);
+        }
+        catch (Exception error) when (IsProtocolError(error))
+        {
+            ReportProtocolError(command, error);
+        }
+    }
 
+    private void AnalyseBusinessMessage(JObject json, string command)
+    {
         if (IsCommand(command, "DANMU_MSG"))
         {
             var danmu = ParseDanmuMessage(roomId, json);
@@ -329,13 +375,14 @@ public class BilibiliLiveWebSocket : BaseApi, ILiveDanmuSocket
             return;
         }
 
-        if (IsCommand(command, "SEND_GIFT"))
+        if (BilibiliGiftMessageParser.SupportsCommand(command))
         {
-            var gift = ParseGiftMessage(roomId, json);
-
-            if (gift is not null)
+            foreach (var gift in BilibiliGiftMessageParser.Parse(roomId, json))
             {
-                GiftReceived?.Invoke(this, gift);
+                if (string.Equals(gift.CoinType, "gold", StringComparison.OrdinalIgnoreCase))
+                {
+                    GiftReceived?.Invoke(this, gift);
+                }
             }
 
             return;
@@ -364,6 +411,18 @@ public class BilibiliLiveWebSocket : BaseApi, ILiveDanmuSocket
         }
     }
 
+    private static bool IsProtocolError(Exception error)
+    {
+        return error is JsonException or FormatException or InvalidDataException or InvalidProtocolBufferException or OverflowException;
+    }
+
+    private void ReportProtocolError(string command, Exception error)
+    {
+        var diagnostic = LocalizedExceptionText.Create("Services.BilibiliWebSocket.InvalidMessage",
+            message => new InvalidDataException(message, error), roomId, command, error.GetType().Name);
+        ErrorReceived?.Invoke(this, diagnostic);
+    }
+
     /// <summary>
     /// 从业务 JSON 中解析普通弹幕。
     /// </summary>
@@ -387,17 +446,22 @@ public class BilibiliLiveWebSocket : BaseApi, ILiveDanmuSocket
         var modernUid = ReadInteger(ReadObjectProperty(modernUser, "uid"));
         var modernName = ReadScalarText(ReadObjectProperty(ReadObjectProperty(modernUser, "base"), "name"));
         var content = ReadScalarText(ReadArrayItem(info, 1));
+        var danmuExtra = ReadDanmuExtra(metadata);
 
         return new()
         {
             RoomId = roomId,
-            MessageId = ReadScalarText(json["msg_id"] ?? json["id"] ?? ReadDanmuExtra(metadata)?["id_str"]),
+            MessageId = ReadScalarText(json["msg_id"] ?? json["id"] ?? danmuExtra?["id_str"]),
             Timestamp = ReadServerTimestamp(ReadArrayItem(metadata, 4), json["send_time"]),
             Uid = modernUid > 0 ? modernUid : ReadInteger(ReadArrayItem(legacyUser, 0)),
             UserName = string.IsNullOrWhiteSpace(modernName)
                 ? ReadScalarText(ReadArrayItem(legacyUser, 1))
                 : modernName,
             Content = content,
+            ReplyUid = Math.Max(0, ReadInteger(danmuExtra?["reply_mid"])),
+            ReplyUserName = ReadScalarText(danmuExtra?["reply_uname"]),
+            ReplyUserNameColor = ReadScalarText(danmuExtra?["reply_uname_color"]),
+            ReplyIsMystery = ReadBoolean(danmuExtra?["reply_is_mystery"]),
             IsRoomAdmin = ReadBoolean(ReadArrayItem(legacyUser, 2)),
             MedalName = modernMedal is not null
                 ? ReadScalarText(modernMedal["name"])
@@ -408,14 +472,13 @@ public class BilibiliLiveWebSocket : BaseApi, ILiveDanmuSocket
             MedalGuardLevel = medalGuardLevel is >= 1 and <= 3 ? medalGuardLevel : 0,
             UserLevel = ReadNonNegativeInt(ReadArrayItem(ReadArrayItem(info, 4), 0)),
             IsEmoticon = IsProtocolEmoticon(metadata, content),
-            Emoticons = ParseDanmuEmoticons(metadata, content)
+            Emoticons = ParseDanmuEmoticons(metadata, content, danmuExtra)
         };
     }
 
-    private static List<BilibiliDanmuEmoticon> ParseDanmuEmoticons(JToken? metadata, string content)
+    private static List<BilibiliDanmuEmoticon> ParseDanmuEmoticons(JToken? metadata, string content, JObject? danmuExtra)
     {
         var result = new List<BilibiliDanmuEmoticon>();
-        var danmuExtra = ReadDanmuExtra(metadata);
         var emots = danmuExtra?["emots"] as JObject ??
                     ReadObjectProperty(ReadArrayItem(metadata, 15), "emots") as JObject;
 
@@ -574,69 +637,14 @@ public class BilibiliLiveWebSocket : BaseApi, ILiveDanmuSocket
     }
 
     /// <summary>
-    /// 从业务 JSON 中解析金币礼物。
+    /// 从旧版业务 JSON 中解析金币礼物，新版批量礼物由业务分发器逐项发布。
     /// </summary>
     public static BilibiliGiftMessage? ParseGiftMessage(string roomId, JObject json)
     {
-        if (!IsCommand(json.Value<string>("cmd"), "SEND_GIFT") || json["data"] is not JObject data ||
-            !string.Equals(ReadScalarText(data["coin_type"]), "gold", StringComparison.OrdinalIgnoreCase))
-        {
-            return null;
-        }
-
-        var sender = data["sender_uinfo"];
-        var senderBase = ReadObjectProperty(sender, "base");
-        var giftInfo = data["gift_info"];
-        var uid = ReadInteger(ReadObjectProperty(sender, "uid"));
-        var userName = ReadScalarText(ReadObjectProperty(senderBase, "name"));
-        var giftName = ReadScalarText(data["giftName"]);
-        var quantity = ReadNonNegativeInt(data["super_gift_num"]);
-        var batchComboCount = ReadNonNegativeInt(ReadObjectProperty(data["batch_combo_send"], "batch_combo_num"));
-
-        if (uid <= 0)
-        {
-            uid = ReadInteger(data["uid"]);
-        }
-
-        if (string.IsNullOrWhiteSpace(userName))
-        {
-            userName = ReadScalarText(data["uname"]);
-        }
-
-        if (string.IsNullOrWhiteSpace(giftName))
-        {
-            giftName = ReadScalarText(ReadObjectProperty(giftInfo, "gift_name"));
-        }
-
-        if (quantity <= 0)
-        {
-            quantity = ReadNonNegativeInt(data["num"]);
-        }
-
-        if (quantity <= 0)
-        {
-            quantity = batchComboCount;
-        }
-
-        if (uid <= 0 || string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(giftName) || quantity <= 0)
-        {
-            return null;
-        }
-
-        return new()
-        {
-            MessageId = ReadScalarText(data["tid"]),
-            RoomId = roomId,
-            Uid = uid,
-            UserName = userName,
-            GiftId = ReadScalarText(data["giftId"] ?? ReadObjectProperty(giftInfo, "gift_id")),
-            GiftName = giftName,
-            Quantity = quantity,
-            BatchComboId = ReadScalarText(data["batch_combo_id"]),
-            BatchComboCount = batchComboCount,
-            UnitPrice = ReadDecimal(data["price"]),
-            Timestamp = ReadServerTimestamp(data["timestamp"], data["ts"], json["send_time"])
-        };
+        var message = BilibiliGiftMessageParser.ParseLegacy(roomId, json);
+        return message is not null && string.Equals(message.CoinType, "gold", StringComparison.OrdinalIgnoreCase)
+            ? message
+            : null;
     }
 
     private static JToken? ReadArrayItem(JToken? token, int index)
@@ -730,29 +738,37 @@ public class BilibiliLiveWebSocket : BaseApi, ILiveDanmuSocket
     /// </summary>
     public static BilibiliSuperChatMessage? ParseSuperChatMessage(string roomId, JObject json)
     {
-        var data = json["data"];
+        var command = ReadScalarText(json["cmd"]).Split(':', 2)[0];
 
-        if (data is null)
+        if (command is not ("SUPER_CHAT_MESSAGE" or "SUPER_CHAT_MESSAGE_JPN") ||
+            json["data"] is not JObject data)
         {
             return null;
         }
 
-        var price = data["price"]?.Value<decimal>() ?? 0;
-        var priceText = data["price_text"]?.Value<string>();
+        var price = ReadDecimal(data["price"]);
+
+        if (price <= 0)
+        {
+            return null;
+        }
+
+        var priceText = ReadScalarText(data["price_text"]);
+        var timestamp = ReadServerTimestamp(data["ts"]);
 
         return new()
         {
             MessageId = ReadTokenText(data["id"]),
             Uid = ReadInteger(data["uid"]),
             RoomId = roomId,
-            UserName = data["user_info"]?["uname"]?.Value<string>() ?? "",
+            UserName = ReadScalarText(ReadObjectProperty(data["user_info"], "uname")),
             Price = price,
             PriceText = string.IsNullOrWhiteSpace(priceText)
                 ? $"￥{price.ToString("0.##", CultureInfo.InvariantCulture)}"
                 : priceText,
             BorderColor = ReadSuperChatColor(data),
-            Content = data["message"]?.Value<string>() ?? "",
-            Timestamp = data["ts"]?.Value<long>() ?? DateTimeOffset.Now.ToUnixTimeSeconds()
+            Content = ReadScalarText(data["message"]),
+            Timestamp = timestamp > 0 ? timestamp : DateTimeOffset.Now.ToUnixTimeSeconds()
         };
     }
 
@@ -767,7 +783,7 @@ public class BilibiliLiveWebSocket : BaseApi, ILiveDanmuSocket
 
         foreach (var colorKey in colorKeys)
         {
-            var color = data[colorKey]?.Value<string>();
+            var color = ReadScalarText(data[colorKey]);
 
             if (IsHexColor(color))
             {
@@ -836,29 +852,26 @@ public class BilibiliLiveWebSocket : BaseApi, ILiveDanmuSocket
         }
     }
 
-    private static byte[] DecompressBrotli(byte[] data)
+    private static byte[] DecompressPacket(ReadOnlySpan<byte> data, int version)
     {
-        var outputBuffer = new byte[Math.Max(data.Length * 8, 8192)];
-
-        while (true)
+        using var input = new MemoryStream(data.ToArray(), false);
+        using Stream decoder = version == 3
+            ? new BrotliStream(input, CompressionMode.Decompress)
+            : new ZLibStream(input, CompressionMode.Decompress);
+        using var output = new MemoryStream();
+        try
         {
-            var decoder = new BrotliDecoder();
-            var status = decoder.Decompress(data, outputBuffer, out _, out var bytesWritten);
-
-            if (status == OperationStatus.Done)
-            {
-                return outputBuffer[..bytesWritten];
-            }
-
-            if (status == OperationStatus.DestinationTooSmall)
-            {
-                outputBuffer = new byte[outputBuffer.Length * 2];
-                continue;
-            }
-
-            throw LocalizedExceptionText.Create("Services.BilibiliWebSocket.DecompressionFailed",
-                message => new InvalidDataException(message));
+            decoder.CopyTo(output);
         }
+        catch (InvalidOperationException error)
+        {
+            throw new InvalidDataException("Compressed packet content is invalid.", error);
+        }
+        if (output.Length == 0)
+        {
+            throw new InvalidDataException("Compressed packet content is empty.");
+        }
+        return output.ToArray();
     }
 
     private byte[] CreateEnterRoomPacket(string token)

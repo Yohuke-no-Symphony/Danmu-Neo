@@ -1707,7 +1707,6 @@ public partial class LiveRoomTabViewModel : ViewModelBase, IDisposable
                 if (!cancellationToken.IsCancellationRequested)
                 {
                     log?.SetDiagnosticError(logSource, exception);
-                    SetForwardRuleStatus(rule, "Forward.Reconnecting", cancellationToken);
                 }
             };
             EventHandler onDisconnected = (_, _) =>

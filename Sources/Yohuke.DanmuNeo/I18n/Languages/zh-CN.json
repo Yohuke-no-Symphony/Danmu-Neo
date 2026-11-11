@@ -2,6 +2,8 @@
   "LanguageName": "简体中文",
   "LanguageID": "zh-CN",
   "Strings": {
+    "Room.NoMedal": "无",
+    "Settings.Appearance.ShowDanmuAvatars": "显示弹幕头像",
     "Captures.PendingSaveStatus": "截图已保留在内存中，请在直播打点截图面板重试保存。",
     "Workbench.Panel.LiveCaptures": "直播打点截图",
     "App.Shortcut.Action.LivePlayerCapture": "直播打点截图",
@@ -546,6 +548,7 @@
     "Services.BilibiliWebSocket.DecompressionFailed": "Brotli 弹幕包解压失败。",
     "Services.BilibiliWebSocket.HeartbeatStopped": "直播弹幕心跳已停止。",
     "Services.BilibiliWebSocket.HeartbeatTimeout": "直播弹幕连接长时间未收到心跳响应。",
+    "Services.BilibiliWebSocket.InvalidMessage": "直播间 {0} 的 {1} 消息解析失败，已跳过该消息并继续接收（{2}）。",
     "Services.BilibiliWebSocket.ReceivingStopped": "直播弹幕接收已停止。",
     "Services.BilibiliWebSocket.ServerClosed": "直播弹幕服务器已关闭连接。",
     "Services.BilibiliWebSocket.ServerDataMissing": "没有获取到弹幕服务器数据。",

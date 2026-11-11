@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+option csharp_namespace = "Yohuke.DanmuNeo.Apis.Protocols.Bilibili";
+
+message UserBase {
+  string name = 1;
+}

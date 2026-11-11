@@ -8,6 +8,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Yohuke.DanmuNeo.Models.Workspace;
+using Yohuke.DanmuNeo.Services;
 
 namespace Yohuke.DanmuNeo.Views.Components;
 
@@ -39,6 +40,18 @@ public sealed class HoverMarqueeTextBlock : UserControl
     public static readonly StyledProperty<IReadOnlyList<DanmuEmoticon>?> EmoticonsProperty =
         AvaloniaProperty.Register<HoverMarqueeTextBlock, IReadOnlyList<DanmuEmoticon>?>(nameof(Emoticons));
 
+    /// <summary>显示在正文前的回复对象。</summary>
+    public static readonly StyledProperty<DanmuReply?> ReplyProperty =
+        AvaloniaProperty.Register<HoverMarqueeTextBlock, DanmuReply?>(nameof(Reply));
+
+    /// <summary>回复头像使用的共享缓存服务。</summary>
+    public static readonly StyledProperty<IUserAvatarService?> AvatarServiceProperty =
+        AvaloniaProperty.Register<HoverMarqueeTextBlock, IUserAvatarService?>(nameof(AvatarService));
+
+    /// <summary>是否显示回复徽章中的头像。</summary>
+    public static readonly StyledProperty<bool> ShowReplyAvatarProperty =
+        AvaloniaProperty.Register<HoverMarqueeTextBlock, bool>(nameof(ShowReplyAvatar), true);
+
     /// <summary>
     /// 初始化悬停滚动文本控件。
     /// </summary>
@@ -57,6 +70,21 @@ public sealed class HoverMarqueeTextBlock : UserControl
         textBlock.Bind(EmoticonTextBlock.EmoticonsProperty, new Binding
         {
             Path = nameof(Emoticons),
+            Source = this
+        });
+        textBlock.Bind(EmoticonTextBlock.ReplyProperty, new Binding
+        {
+            Path = nameof(Reply),
+            Source = this
+        });
+        textBlock.Bind(EmoticonTextBlock.AvatarServiceProperty, new Binding
+        {
+            Path = nameof(AvatarService),
+            Source = this
+        });
+        textBlock.Bind(EmoticonTextBlock.ShowReplyAvatarProperty, new Binding
+        {
+            Path = nameof(ShowReplyAvatar),
             Source = this
         });
 
@@ -97,6 +125,27 @@ public sealed class HoverMarqueeTextBlock : UserControl
     {
         get => GetValue(EmoticonsProperty);
         set => SetValue(EmoticonsProperty, value);
+    }
+
+    /// <summary>显示在正文前的回复对象。</summary>
+    public DanmuReply? Reply
+    {
+        get => GetValue(ReplyProperty);
+        set => SetValue(ReplyProperty, value);
+    }
+
+    /// <summary>回复头像使用的共享缓存服务。</summary>
+    public IUserAvatarService? AvatarService
+    {
+        get => GetValue(AvatarServiceProperty);
+        set => SetValue(AvatarServiceProperty, value);
+    }
+
+    /// <summary>是否显示回复徽章中的头像。</summary>
+    public bool ShowReplyAvatar
+    {
+        get => GetValue(ShowReplyAvatarProperty);
+        set => SetValue(ShowReplyAvatarProperty, value);
     }
 
     private void Control_OnPointerEntered(object? sender, PointerEventArgs e)

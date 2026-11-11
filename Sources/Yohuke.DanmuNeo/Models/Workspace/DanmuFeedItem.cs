@@ -24,6 +24,9 @@ public class DanmuFeedItem : ObservableObject
     /// <summary>是否来自服务器近期历史补拉。</summary>
     public bool IsHistory { get; set; }
 
+    /// <summary>是否为收到的礼物记录。</summary>
+    public bool IsGift { get; set; }
+
     /// <summary>
     /// 接收此弹幕时的直播间 ID。
     /// </summary>
@@ -68,6 +71,9 @@ public class DanmuFeedItem : ObservableObject
     /// 是否有可展示的粉丝牌。
     /// </summary>
     public bool HasMedal => !string.IsNullOrWhiteSpace(MedalName) && MedalLevel > 0;
+
+    /// <summary>是否为需要显示无粉丝牌占位的普通接收弹幕。</summary>
+    public bool ShowNoMedalPlaceholder => !HasMedal && !IsGift && !IsLocalRecord;
 
     /// <summary>
     /// 粉丝牌名称与等级。
@@ -114,6 +120,28 @@ public class DanmuFeedItem : ObservableObject
     /// 用户 UID。
     /// </summary>
     public string UserUid { get; set; } = "";
+
+    /// <summary>用于头像查询的有效发送者 UID。</summary>
+    public long AvatarUid => long.TryParse(UserUid, NumberStyles.Integer, CultureInfo.InvariantCulture, out var uid)
+        ? Math.Max(0, uid)
+        : 0;
+
+    /// <summary>被回复用户的 UID。</summary>
+    public long ReplyUid { get; set; }
+
+    /// <summary>被回复用户的昵称。</summary>
+    public string ReplyUserName { get; set; } = "";
+
+    /// <summary>协议提供的被回复用户名颜色。</summary>
+    public string ReplyUserNameColor { get; set; } = "";
+
+    /// <summary>被回复用户是否隐藏身份。</summary>
+    public bool ReplyIsMystery { get; set; }
+
+    /// <summary>可独立嵌入正文的回复对象。</summary>
+    public DanmuReply? Reply => string.IsNullOrWhiteSpace(ReplyUserName)
+        ? null
+        : new(ReplyIsMystery ? 0 : ReplyUid, ReplyUserName, ReplyUserNameColor);
 
     /// <summary>
     /// 弹幕内容。

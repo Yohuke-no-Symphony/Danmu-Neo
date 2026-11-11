@@ -49,6 +49,7 @@ public partial class MainWindowViewModel
         }
 
         await ShutdownReceptionAsync();
+        await ShutdownUserAvatarsAsync();
         Dispose();
     }
 

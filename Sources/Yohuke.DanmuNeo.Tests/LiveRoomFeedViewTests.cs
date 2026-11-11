@@ -8,6 +8,7 @@ using Avalonia.Threading;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.VisualTree;
+using Yohuke.DanmuNeo.I18n;
 using Yohuke.DanmuNeo.Models.Workspace;
 using Yohuke.DanmuNeo.Views.Components;
 
@@ -83,7 +84,7 @@ public class LiveRoomFeedViewTests
     }
 
     /// <summary>
-    /// 普通和紧凑模式均展示粉丝牌等级和上舰档位，无牌用户不占用徽章位置。
+    /// 普通和紧凑模式均展示粉丝牌等级与上舰档位，无牌弹幕显示弱化占位。
     /// </summary>
     [AvaloniaTheory]
     [InlineData(false)]
@@ -110,6 +111,10 @@ public class LiveRoomFeedViewTests
             Assert.True(medal.IsEffectivelyVisible);
             Assert.True(medal.Bounds.Width > 0 && medal.Bounds.Height > 0);
             Assert.Single(badges, control => !control.IsVisible);
+            var placeholder = Assert.Single(view.GetVisualDescendants().OfType<Border>(), control =>
+                control.Classes.Contains("danmuMedalPlaceholder") && control.IsEffectivelyVisible);
+            Assert.Equal(0.5, placeholder.Opacity);
+            Assert.Equal(Localization.Get("Room.NoMedal"), Assert.IsType<TextBlock>(placeholder.Child).Text);
             var danmu = FindMedalDanmuButton(view);
             var name = danmu.GetVisualDescendants().OfType<TextBlock>()
                 .Single(control => control.Classes.Contains("danmuFeedUser"));

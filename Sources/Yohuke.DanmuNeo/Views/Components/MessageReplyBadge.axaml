@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:components="using:Yohuke.DanmuNeo.Views.Components"
+             x:Class="Yohuke.DanmuNeo.Views.Components.MessageReplyBadge">
+    <Border x:Name="ReplyFrame" CornerRadius="20"
+            Background="{DynamicResource AppSidebarSelectedBrush}"
+            BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1">
+        <Grid x:Name="ReplyContent" ColumnDefinitions="Auto,*">
+            <components:UserAvatarView x:Name="ReplyAvatar" />
+            <TextBlock x:Name="ReplyName" Grid.Column="1" VerticalAlignment="Center"
+                       TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+        </Grid>
+    </Border>
+</UserControl>

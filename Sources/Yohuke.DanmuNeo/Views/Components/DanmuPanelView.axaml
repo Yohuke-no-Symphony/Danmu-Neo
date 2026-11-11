@@ -37,10 +37,21 @@
                                     ContextRequested="Danmu_OnContextRequested"
                                     Click="Danmu_OnClick">
                                 <Grid Classes="danmuFeedLayout"
-                                      ColumnDefinitions="2*,3*"
                                       RowDefinitions="Auto">
-                                    <DockPanel Classes="danmuFeedIdentity"
-                                               VerticalAlignment="Center">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2*" MinWidth="160" />
+                                        <ColumnDefinition Width="3*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid Classes="danmuFeedIdentity"
+                                          Classes.historyDanmu="{Binding IsHistory}"
+                                          ColumnDefinitions="Auto,Auto,*"
+                                          ClipToBounds="True"
+                                          VerticalAlignment="Center">
+                                        <Grid.Styles>
+                                            <Style Selector="Grid.compactDanmu Grid.danmuFeedIdentity:not(.historyDanmu) Button.feedUserNameButton">
+                                                <Setter Property="Grid.ColumnSpan" Value="2" />
+                                            </Style>
+                                        </Grid.Styles>
                                         <Border Classes="danmuMedalBadge"
                                                 BorderBrush="{Binding MedalBorderBrush}"
                                                 IsVisible="{Binding HasMedal}"
@@ -56,29 +67,56 @@
                                                            TextTrimming="CharacterEllipsis" />
                                             </Grid>
                                         </Border>
-                                        <TextBlock Text="{Loc Key=Room.History.Badge}"
-                                                   IsVisible="{Binding IsHistory}"
-                                                   Classes="muted" DockPanel.Dock="Right" Margin="6,0,0,0"/>
-                                        <TextBlock Text="{Binding DetailLine}"
-                                                   Classes="danmuFeedMeta"
-                                                   DockPanel.Dock="Right"
-                                                   Margin="6,0,0,0"
-                                                   TextTrimming="CharacterEllipsis" />
-                                        <Button Classes="feedUserNameButton"
-                                                Click="FeedUserName_OnClick">
-                                            <TextBlock Text="{Binding UserName}"
-                                                       Classes="danmuFeedUser"
-                                                       TextTrimming="CharacterEllipsis" />
-                                        </Button>
-                                    </DockPanel>
+                                        <Border Classes="danmuMedalPlaceholder"
+                                                IsVisible="{Binding ShowNoMedalPlaceholder}">
+                                            <TextBlock Text="{Loc Key=Room.NoMedal}"
+                                                       Classes="danmuMedalText"
+                                                       TextAlignment="Center" />
+                                        </Border>
+                                        <components:UserAvatarView Grid.Column="1"
+                                                                   UserUid="{Binding AvatarUid}"
+                                                                   AvatarService="{Binding #Root.Context.Application.UserAvatars}"
+                                                                   ShowAvatar="{Binding #Root.Context.Application.IsShowDanmuAvatars}"
+                                                                   Margin="0,0,6,0" />
+                                        <Grid Grid.Column="2"
+                                              ColumnDefinitions="2*,*"
+                                              VerticalAlignment="Center">
+                                            <Button Classes="feedUserNameButton"
+                                                    Click="FeedUserName_OnClick">
+                                                <TextBlock Text="{Binding UserName}"
+                                                           Classes="danmuFeedUser"
+                                                           TextTrimming="CharacterEllipsis" />
+                                            </Button>
+                                            <Grid Grid.Column="1"
+                                                  ColumnDefinitions="*,Auto"
+                                                  ClipToBounds="True"
+                                                  VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding DetailLine}"
+                                                           Classes="danmuFeedMeta"
+                                                           Margin="6,0,0,0"
+                                                           TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Loc Key=Room.History.Badge}"
+                                                           IsVisible="{Binding IsHistory}"
+                                                           Classes="muted"
+                                                           Margin="6,0,0,0" />
+                                            </Grid>
+                                        </Grid>
+                                    </Grid>
                                     <components:EmoticonTextBlock Grid.Column="1"
                                                                   ContentText="{Binding Content}"
                                                                   Emoticons="{Binding Emoticons}"
+                                                                  Reply="{Binding Reply}"
+                                                                  AvatarService="{Binding #Root.Context.Application.UserAvatars}"
+                                                                  ShowReplyAvatar="{Binding #Root.Context.Application.IsShowDanmuAvatars}"
                                                                   Classes="danmuFeedContent regularFeedContent"
                                                                   TextWrapping="Wrap" />
                                     <components:HoverMarqueeTextBlock Grid.Column="1"
                                                                       Text="{Binding Content}"
                                                                       Emoticons="{Binding Emoticons}"
+                                                                      Reply="{Binding Reply}"
+                                                                      AvatarService="{Binding #Root.Context.Application.UserAvatars}"
+                                                                      ShowReplyAvatar="{Binding #Root.Context.Application.IsShowDanmuAvatars}"
                                                                       Classes="compactFeedContent" />
                                 </Grid>
                             </Button>

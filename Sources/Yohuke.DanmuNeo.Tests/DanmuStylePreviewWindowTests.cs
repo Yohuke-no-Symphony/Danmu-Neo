@@ -11,6 +11,7 @@ using Avalonia.VisualTree;
 using Yohuke.DanmuNeo.Models.Workspace;
 using Yohuke.DanmuNeo.ViewModels.Items;
 using Yohuke.DanmuNeo.Views;
+using Yohuke.DanmuNeo.Views.Components;
 
 namespace Yohuke.DanmuNeo.Tests;
 
@@ -263,8 +264,10 @@ public class DanmuStylePreviewWindowTests
                 .Single(control => control.Classes.Contains("scFeedPrice"));
             var layout = button.GetVisualDescendants().OfType<Grid>()
                 .Single(control => control.Classes.Contains("scFeedLayout"));
+            var avatar = button.GetVisualDescendants().OfType<UserAvatarView>().Single();
+            var expectedHeight = Math.Max(name.Bounds.Height, avatar.IsEffectivelyVisible ? avatar.Bounds.Height : 0);
             Assert.Equal(0, layout.RowSpacing);
-            Assert.InRange(layout.Bounds.Height, name.Bounds.Height - 1, name.Bounds.Height + 1);
+            Assert.InRange(layout.Bounds.Height, expectedHeight - 1, expectedHeight + 1);
             Assert.Equal(item.BorderColor, Assert.IsType<SolidColorBrush>(tier.Foreground).Color);
             Assert.Equal(2,
                 button.GetVisualDescendants().OfType<TextBlock>().Count(control => control.IsEffectivelyVisible));

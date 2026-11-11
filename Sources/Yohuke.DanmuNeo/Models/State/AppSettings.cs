@@ -107,6 +107,9 @@ public class AppSettings
     /// <summary>是否自动将收到的直播消息留档为本地文本。</summary>
     public bool ArchiveReceivedDanmu { get; set; } = true;
 
+    /// <summary>是否显示普通弹幕、SC 及回复对象的头像。</summary>
+    public bool ShowDanmuAvatars { get; set; } = true;
+
     /// <summary>
     /// 是否使用紧凑弹幕显示。
     /// </summary>

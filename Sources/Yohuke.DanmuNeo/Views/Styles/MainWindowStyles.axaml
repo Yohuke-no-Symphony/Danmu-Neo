@@ -921,7 +921,7 @@
         <Setter Property="Foreground" Value="{DynamicResource AppMutedTextBrush}" />
     </Style>
 
-    <Style Selector="Border.danmuMedalBadge">
+    <Style Selector="Border.danmuMedalBadge, Border.danmuMedalPlaceholder">
         <Setter Property="Background" Value="{DynamicResource AppSidebarSelectedBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Width" Value="66" />
@@ -930,6 +930,12 @@
         <Setter Property="Margin" Value="0,0,6,0" />
         <Setter Property="HorizontalAlignment" Value="Left" />
         <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="Border.danmuMedalPlaceholder">
+        <Setter Property="Background" Value="{DynamicResource AppBorderBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AppMutedTextBrush}" />
+        <Setter Property="Opacity" Value="0.5" />
     </Style>
 
     <Style Selector="Grid.danmuMedalLayout">

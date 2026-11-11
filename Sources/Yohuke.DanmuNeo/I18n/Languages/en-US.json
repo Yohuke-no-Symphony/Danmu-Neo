@@ -2,6 +2,8 @@
   "LanguageName": "English",
   "LanguageID": "en-US",
   "Strings": {
+    "Room.NoMedal": "None",
+    "Settings.Appearance.ShowDanmuAvatars": "Show danmaku avatars",
     "Captures.PendingSaveStatus": "The capture is retained in memory. Open Live captures and retry saving.",
     "Workbench.Panel.LiveCaptures": "Live captures",
     "App.Shortcut.Action.LivePlayerCapture": "Capture live frame",
@@ -546,6 +548,7 @@
     "Services.BilibiliWebSocket.DecompressionFailed": "Failed to decompress the Brotli danmu packet.",
     "Services.BilibiliWebSocket.HeartbeatStopped": "The live danmu heartbeat has stopped.",
     "Services.BilibiliWebSocket.HeartbeatTimeout": "The live danmu connection has not received a heartbeat response for too long.",
+    "Services.BilibiliWebSocket.InvalidMessage": "Could not parse {1} in room {0}. The message was skipped and receiving continues ({2}).",
     "Services.BilibiliWebSocket.ReceivingStopped": "Live danmu reception has stopped.",
     "Services.BilibiliWebSocket.ServerClosed": "The live danmu server closed the connection.",
     "Services.BilibiliWebSocket.ServerDataMissing": "No danmu server data was returned.",

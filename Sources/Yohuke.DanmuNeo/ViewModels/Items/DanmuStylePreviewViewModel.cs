@@ -20,6 +20,8 @@ internal sealed class DanmuStylePreviewViewModel : ViewModelBase, IDisposable
     private int medalLevel = 25;
     private string superChatColorText = "";
     private bool isCompactDanmuDisplay;
+    private bool isShowDanmuAvatars = true;
+    private IUserAvatarService? userAvatars;
     private bool isCompactDanmuWrap;
     private bool isCompactSuperChatWrap = true;
     private SuperChatStylePreset? selectedSuperChatPreset;
@@ -92,6 +94,20 @@ internal sealed class DanmuStylePreviewViewModel : ViewModelBase, IDisposable
     {
         get => isCompactDanmuDisplay;
         set => SetProperty(ref isCompactDanmuDisplay, value);
+    }
+
+    /// <summary>离线预览使用的可注入用户头像服务。</summary>
+    public IUserAvatarService? UserAvatars
+    {
+        get => userAvatars;
+        set => SetProperty(ref userAvatars, value);
+    }
+
+    /// <summary>是否在预览中显示发送者及回复对象的头像。</summary>
+    public bool IsShowDanmuAvatars
+    {
+        get => isShowDanmuAvatars;
+        set => SetProperty(ref isShowDanmuAvatars, value);
     }
 
     /// <summary>
@@ -268,7 +284,12 @@ internal sealed class DanmuStylePreviewViewModel : ViewModelBase, IDisposable
         }
 
         AddDanmuSample(new() { Time = now, UserUid = "10001" }, "Preview.ShortUser", "Preview.ShortContent");
-        AddDanmuSample(new() { Time = now.AddSeconds(-4), UserUid = "10005" }, "Preview.GiftUser", "Preview.GiftContent");
+        AddDanmuSample(new()
+        {
+            Time = now.AddSeconds(-4),
+            UserUid = "10005",
+            IsGift = true
+        }, "Preview.GiftUser", "Preview.GiftContent");
         AddDanmuSample(new()
         {
             Time = now.AddSeconds(-8),

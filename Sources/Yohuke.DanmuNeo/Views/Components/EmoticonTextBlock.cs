@@ -5,18 +5,21 @@ using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Media.TextFormatting;
 using Avalonia.VisualTree;
 using Yohuke.DanmuNeo.Models.Workspace;
+using Yohuke.DanmuNeo.Services;
 
 namespace Yohuke.DanmuNeo.Views.Components;
 
 /// <summary>
-/// 在弹幕原文中内联显示本地缓存的表情图片。
+/// 在弹幕原文中内联显示回复徽章和本地缓存的表情图片。
 /// </summary>
 public sealed class EmoticonTextBlock : TextBlock
 {
     private const double EMOTICON_HEIGHT = 20;
     private readonly Dictionary<string, Bitmap> images = new(StringComparer.Ordinal);
+    private MessageReplyBadge? replyBadge;
     private bool isAttached;
 
     /// <summary>
@@ -30,6 +33,18 @@ public sealed class EmoticonTextBlock : TextBlock
     /// </summary>
     public static readonly StyledProperty<IReadOnlyList<DanmuEmoticon>?> EmoticonsProperty =
         AvaloniaProperty.Register<EmoticonTextBlock, IReadOnlyList<DanmuEmoticon>?>(nameof(Emoticons));
+
+    /// <summary>独立于原始正文的回复对象。</summary>
+    public static readonly StyledProperty<DanmuReply?> ReplyProperty =
+        AvaloniaProperty.Register<EmoticonTextBlock, DanmuReply?>(nameof(Reply));
+
+    /// <summary>回复头像使用的共享缓存服务。</summary>
+    public static readonly StyledProperty<IUserAvatarService?> AvatarServiceProperty =
+        AvaloniaProperty.Register<EmoticonTextBlock, IUserAvatarService?>(nameof(AvatarService));
+
+    /// <summary>是否显示回复徽章中的头像。</summary>
+    public static readonly StyledProperty<bool> ShowReplyAvatarProperty =
+        AvaloniaProperty.Register<EmoticonTextBlock, bool>(nameof(ShowReplyAvatar), true);
 
     /// <summary>
     /// 包含原始表情文本的弹幕正文。
@@ -49,17 +64,78 @@ public sealed class EmoticonTextBlock : TextBlock
         set => SetValue(EmoticonsProperty, value);
     }
 
+    /// <summary>独立于原始正文的回复对象。</summary>
+    public DanmuReply? Reply
+    {
+        get => GetValue(ReplyProperty);
+        set => SetValue(ReplyProperty, value);
+    }
+
+    /// <summary>回复头像使用的共享缓存服务。</summary>
+    public IUserAvatarService? AvatarService
+    {
+        get => GetValue(AvatarServiceProperty);
+        set => SetValue(AvatarServiceProperty, value);
+    }
+
+    /// <summary>是否显示回复徽章中的头像。</summary>
+    public bool ShowReplyAvatar
+    {
+        get => GetValue(ShowReplyAvatarProperty);
+        set => SetValue(ShowReplyAvatarProperty, value);
+    }
+
     /// <inheritdoc/>
     protected override Type StyleKeyOverride => typeof(TextBlock);
+
+    /// <inheritdoc />
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        if (replyBadge is not null)
+        {
+            replyBadge.MaxWidth = TextWrapping == TextWrapping.NoWrap
+                ? double.PositiveInfinity
+                : Math.Max(0, availableSize.Width - Padding.Left - Padding.Right);
+        }
+        return base.MeasureOverride(availableSize);
+    }
+
+    /// <inheritdoc />
+    protected override TextLayout CreateTextLayout(string? text)
+    {
+        if (replyBadge is null || TextWrapping != TextWrapping.Wrap ||
+            !double.IsFinite(_constraint.Width) || _constraint.Width <= 0)
+        {
+            return base.CreateTextLayout(text);
+        }
+        var constraint = _constraint;
+        _constraint = new(Math.BitIncrement(constraint.Width), constraint.Height);
+        try
+        {
+            return base.CreateTextLayout(text);
+        }
+        finally
+        {
+            _constraint = constraint;
+        }
+    }
 
     /// <inheritdoc/>
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
 
-        if (change.Property == ContentTextProperty || change.Property == EmoticonsProperty)
+        if (change.Property == ContentTextProperty || change.Property == EmoticonsProperty ||
+            change.Property == ReplyProperty || change.Property == AvatarServiceProperty ||
+            change.Property == ShowReplyAvatarProperty)
         {
             RebuildContent();
+        }
+        else if (change.Property == FontFamilyProperty || change.Property == FontSizeProperty ||
+                 change.Property == FontWeightProperty || change.Property == FontStyleProperty ||
+                 change.Property == FontStretchProperty || change.Property == ForegroundProperty)
+        {
+            replyBadge?.UpdateTypography(this);
         }
     }
 
@@ -87,7 +163,8 @@ public sealed class EmoticonTextBlock : TextBlock
                                                      !string.IsNullOrWhiteSpace(emoticon.ImagePath))
             .OrderByDescending(emoticon => emoticon.Text.Length).ToArray() ?? [];
 
-        if (!isAttached || candidates.Length == 0)
+        var hasReply = Reply is { } reply && !string.IsNullOrWhiteSpace(reply.UserName);
+        if (!isAttached || candidates.Length == 0 && !hasReply)
         {
             Inlines = null;
             Text = content;
@@ -96,6 +173,13 @@ public sealed class EmoticonTextBlock : TextBlock
 
         Text = null;
         Inlines = new();
+        if (hasReply)
+        {
+            replyBadge = new(Reply!, AvatarService, ShowReplyAvatar);
+            replyBadge.UpdateTypography(this);
+            Inlines.Add(new InlineUIContainer(replyBadge) { BaselineAlignment = BaselineAlignment.Baseline });
+            Inlines.Add(new Run(" "));
+        }
         var position = 0;
 
         while (position < content.Length)
@@ -176,6 +260,7 @@ public sealed class EmoticonTextBlock : TextBlock
     private void ReleaseContent()
     {
         Inlines?.Clear();
+        replyBadge = null;
 
         foreach (var image in images.Values)
         {

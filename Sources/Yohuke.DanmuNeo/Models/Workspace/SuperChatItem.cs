@@ -62,6 +62,9 @@ public class SuperChatItem : ObservableObject
     /// </summary>
     public string MessageId { get; set; } = "";
 
+    /// <summary>发送 SC 或购买大航海的用户 UID。</summary>
+    public long UserUid { get; set; }
+
     /// <summary>
     /// 发送时间。
     /// </summary>
