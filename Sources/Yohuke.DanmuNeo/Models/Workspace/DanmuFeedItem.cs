@@ -14,6 +14,7 @@ public class DanmuFeedItem : ObservableObject
     private const int MAX_MEDAL_NAME_LENGTH = 3;
     private string content = "";
     private string userName = "";
+    private string userUid = "";
     private string? contentKey;
     private object[] contentArguments = [];
     private string? statusKey;
@@ -26,6 +27,9 @@ public class DanmuFeedItem : ObservableObject
 
     /// <summary>是否为收到的礼物记录。</summary>
     public bool IsGift { get; set; }
+
+    /// <summary>是否为红包摘要。</summary>
+    public virtual bool IsRedPocket => false;
 
     /// <summary>
     /// 接收此弹幕时的直播间 ID。
@@ -73,7 +77,7 @@ public class DanmuFeedItem : ObservableObject
     public bool HasMedal => !string.IsNullOrWhiteSpace(MedalName) && MedalLevel > 0;
 
     /// <summary>是否为需要显示无粉丝牌占位的普通接收弹幕。</summary>
-    public bool ShowNoMedalPlaceholder => !HasMedal && !IsGift && !IsLocalRecord;
+    public bool ShowNoMedalPlaceholder => !HasMedal && !IsGift && !IsRedPocket && !IsLocalRecord;
 
     /// <summary>
     /// 粉丝牌名称与等级。
@@ -119,7 +123,17 @@ public class DanmuFeedItem : ObservableObject
     /// <summary>
     /// 用户 UID。
     /// </summary>
-    public string UserUid { get; set; } = "";
+    public string UserUid
+    {
+        get => userUid;
+        set
+        {
+            if (SetProperty(ref userUid, value))
+            {
+                OnPropertyChanged(nameof(AvatarUid));
+            }
+        }
+    }
 
     /// <summary>用于头像查询的有效发送者 UID。</summary>
     public long AvatarUid => long.TryParse(UserUid, NumberStyles.Integer, CultureInfo.InvariantCulture, out var uid)
@@ -229,7 +243,7 @@ public class DanmuFeedItem : ObservableObject
     /// <summary>
     /// 仅刷新应用生成的本地化文字，保留用户和服务器提供的内容。
     /// </summary>
-    public void RefreshLocalization()
+    public virtual void RefreshLocalization()
     {
         if (contentKey is not null)
         {

@@ -17,6 +17,9 @@ public interface ILiveDanmuSocket
     /// </summary>
     event EventHandler<BilibiliGiftMessage>? GiftReceived;
 
+    /// <summary>接收到红包通知或开奖更新时触发。</summary>
+    event EventHandler<BilibiliRedPocketMessage>? RedPocketReceived;
+
     /// <summary>
     /// 接收到 Super Chat 时触发。
     /// </summary>

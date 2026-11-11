@@ -97,6 +97,7 @@ public partial class LiveRoomTabViewModel
         listenerLogSource = source;
         socket.DanmuReceived += OnDanmuReceived;
         socket.GiftReceived += OnGiftReceived;
+        socket.RedPocketReceived += OnRedPocketReceived;
         socket.SuperChatReceived += OnSuperChatReceived;
         socket.GuardPurchaseReceived += OnGuardPurchaseReceived;
         EventHandler onDisconnected = (_, _) => PostListenerConnectionStatus(socket, "Room.Reconnecting");
@@ -143,6 +144,7 @@ public partial class LiveRoomTabViewModel
             {
                 socket.DanmuReceived -= OnDanmuReceived;
                 socket.GiftReceived -= OnGiftReceived;
+                socket.RedPocketReceived -= OnRedPocketReceived;
                 socket.SuperChatReceived -= OnSuperChatReceived;
                 socket.GuardPurchaseReceived -= OnGuardPurchaseReceived;
                 socket.Disconnected -= onDisconnected;
