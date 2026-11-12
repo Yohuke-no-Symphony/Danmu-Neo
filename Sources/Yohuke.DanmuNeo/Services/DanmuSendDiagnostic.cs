@@ -1,3 +1,5 @@
+using Yohuke.DanmuCore.Diagnostics;
+using Yohuke.DanmuCore.Apis;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
@@ -97,7 +99,7 @@ public sealed record DanmuSendDiagnostic
             return null;
         }
 
-        var sanitized = AppLogSanitizer.Sanitize(text, sensitiveValues);
+        var sanitized = DiagnosticSanitizer.Sanitize(text, sensitiveValues);
         return sanitized.Length <= MAX_RESPONSE_TEXT_LENGTH
             ? sanitized
             : sanitized[..MAX_RESPONSE_TEXT_LENGTH] + "…";

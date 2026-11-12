@@ -236,3 +236,13 @@ pwsh -NoProfile -Command "Invoke-Pester -Path ./Sources/Yohuke.DanmuNeo.Tests/Wi
 ```
 
 Dock 改造的自动化覆盖布局往返与恢复、面板唯一性和实例复用、隐藏恢复、浮窗关闭、自定义预设、播放异步归属、跨面板插入、菜单命令、设置保存和退出顺序。原生播放器的实际声画连续性、中文 IME、系统菜单、多显示器缩放及原生控件在模态期间的交互，需要在目标桌面环境中另外验收；无头测试和发布签名检查不代替这些结果。
+
+## 构建源码
+
+克隆时包含共享核心子模块：
+
+```shell
+git clone --recurse-submodules https://github.com/Yohuke-no-Symphony/Danmu-Neo.git
+```
+
+已有工作副本先运行 `git submodule update --init --recursive`，再构建 `Sources/Yohuke.DanmuNeo.sln`。Bilibili API、协议模型和纯服务由 `Core` 子模块内的 `Yohuke.DanmuCore` 项目提供；发布脚本会检查该项目是否存在。

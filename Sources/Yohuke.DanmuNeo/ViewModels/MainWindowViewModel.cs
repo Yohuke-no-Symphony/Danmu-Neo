@@ -1,3 +1,4 @@
+using Yohuke.DanmuCore.Services;
 using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 using Avalonia.Input;
@@ -99,6 +100,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable, IAsyncDis
         this.danmuConfigService = danmuConfigService ?? new BilibiliDanmuConfigService();
         this.accountSessions = accountSessions ?? new BilibiliAccountSessionService();
         ownsAccountSessions = accountSessions is null;
+        accountSessionBinding = new(this.accountSessions);
         receptionServices = new(danmuHistoryService ?? new BilibiliDanmuHistoryService(),
             this.receivedDanmuArchiveService, this.accountSessions);
         danmuSendService = new(danmuConfigService: this.danmuConfigService, log: Log,

@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Yohuke.DanmuNeo.ViewModels"
-             xmlns:workspace="using:Yohuke.DanmuNeo.Models.Workspace"
+             xmlns:workspace="using:Yohuke.DanmuNeo.ViewModels.Items"
              x:Class="Yohuke.DanmuNeo.Views.Components.AddWorkspaceDialogView"
              x:DataType="vm:MainWindowViewModel"
              x:CompileBindings="False"
@@ -57,7 +57,7 @@
                                 <ItemsControl x:Name="LiveRoomSearchResultsControl"
                                               ItemsSource="{Binding LiveRoomSearchResults}">
                                     <ItemsControl.ItemTemplate>
-                                        <DataTemplate DataType="workspace:LiveRoomSearchResult">
+                                        <DataTemplate DataType="workspace:LiveRoomSearchResultViewModel">
                                             <Border Margin="0,0,0,8"
                                                     Padding="10"
                                                     BorderThickness="1"

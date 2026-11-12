@@ -1,3 +1,5 @@
+using Yohuke.DanmuCore.Diagnostics;
+using Yohuke.DanmuCore.Apis;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
@@ -329,7 +331,7 @@ public partial class LivePlayerService : ILivePlayerService, ILiveFrameCaptureSe
     private void ReportDiagnostic(LivePlayerStreamEntry entry, string? message, AppLogLevel level,
         bool upstreamFailure = false, bool networkFailure = false)
     {
-        var safeMessage = message is null ? null : AppLogSanitizer.Sanitize(message);
+        var safeMessage = message is null ? null : DiagnosticSanitizer.Sanitize(message);
 
         lock (gate)
         {

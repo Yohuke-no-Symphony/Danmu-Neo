@@ -1,3 +1,4 @@
+using Yohuke.DanmuCore.Services;
 using System.Collections.ObjectModel;
 using Yohuke.DanmuNeo.Models.State;
 using Yohuke.DanmuNeo.Models.Workspace;
@@ -31,9 +32,10 @@ public sealed class ModerationManagerTestContext : IDisposable
             }, _ => "账号")
         ];
 
+        AccountBinding = new(Sessions);
         foreach (var account in Accounts)
         {
-            Sessions.Register(account);
+            AccountBinding.Register(account);
         }
 
         Service.PermissionResponseAsync = (roomId, _, _) => Task.FromResult(new RoomModerationPermission
@@ -59,6 +61,8 @@ public sealed class ModerationManagerTestContext : IDisposable
     /// <summary>共享账号有效性边界。</summary>
     public BilibiliAccountSessionService Sessions { get; } = new(new ControlledAccountValidationService());
 
+    private BilibiliAccountSessionBinding AccountBinding { get; }
+
     /// <summary>会话日志。</summary>
     public AppLogService Log { get; } = new();
 
@@ -69,6 +73,7 @@ public sealed class ModerationManagerTestContext : IDisposable
     public void Dispose()
     {
         Manager.Dispose();
+        AccountBinding.Dispose();
         Sessions.Dispose();
         Log.Dispose();
 

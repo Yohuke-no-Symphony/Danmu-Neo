@@ -1,3 +1,4 @@
+using Yohuke.DanmuCore.Models.Search;
 using Avalonia.Headless.XUnit;
 using Yohuke.DanmuNeo.Models.Logging;
 using Yohuke.DanmuNeo.Models.Workspace;

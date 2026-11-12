@@ -1,6 +1,7 @@
+using Yohuke.DanmuCore.Services;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
-using Yohuke.DanmuNeo.Apis.Models.Bilibili;
+using Yohuke.DanmuCore.Apis.Models.Bilibili;
 using Yohuke.DanmuNeo.Models.State;
 using Yohuke.DanmuNeo.Services;
 using Yohuke.DanmuNeo.ViewModels.Items;

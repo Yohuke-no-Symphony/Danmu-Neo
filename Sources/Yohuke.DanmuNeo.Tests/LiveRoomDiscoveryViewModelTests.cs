@@ -1,3 +1,5 @@
+using Yohuke.DanmuNeo.ViewModels.Items;
+using Yohuke.DanmuCore.Models.Search;
 using Yohuke.DanmuNeo.Models.State;
 using Yohuke.DanmuNeo.Models.Workspace;
 
@@ -74,7 +76,7 @@ public class LiveRoomDiscoveryViewModelTests
         context.SearchService.FollowingRespondAsync = () => Task.FromResult(new LiveRoomSearchPage { Results = [result] });
         viewModel.OpenAddRoomDialog(null);
         await viewModel.LiveRoomSearchTask;
-        Assert.Single(viewModel.LiveRoomSearchResults);
+        var selectedResult = Assert.Single(viewModel.LiveRoomSearchResults);
 
         viewModel.Workspaces[0].AccountOverrideId = "other";
         var other = new BilibiliAccount { Id = "other", Cookie = "SESSDATA=other" };
@@ -82,7 +84,7 @@ public class LiveRoomDiscoveryViewModelTests
         viewModel.Accounts.Add(other);
 
         Assert.Empty(viewModel.LiveRoomSearchResults);
-        Assert.False(viewModel.AddSearchedRoomCommand.CanExecute(result));
+        Assert.False(viewModel.AddSearchedRoomCommand.CanExecute(selectedResult));
     }
 
     /// <summary>短号已有标签与规范房号搜索结果是同一房间，不创建第二个标签。</summary>
@@ -96,11 +98,11 @@ public class LiveRoomDiscoveryViewModelTests
         await viewModel.ConfirmAddDialogAsync();
         var existing = Assert.Single(viewModel.Workspaces[0].Rooms);
         viewModel.OpenAddRoomDialog(null);
-        var result = new LiveRoomSearchResult
+        var result = new LiveRoomSearchResultViewModel(new()
         {
             RoomId = "100", ShortRoomId = "42", OwnerUid = "7", OwnerName = "主播",
             Sources = LiveRoomSearchSource.RoomId
-        };
+        });
         viewModel.LiveRoomSearchResults.Add(result);
 
         await viewModel.AddSearchedRoomAsync(result);

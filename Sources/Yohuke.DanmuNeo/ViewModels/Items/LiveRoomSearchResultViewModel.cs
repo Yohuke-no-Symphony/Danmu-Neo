@@ -1,22 +1,31 @@
+using Yohuke.DanmuCore.Models.Search;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Yohuke.DanmuNeo.I18n;
 
-namespace Yohuke.DanmuNeo.Models.Workspace;
+namespace Yohuke.DanmuNeo.ViewModels.Items;
 
 /// <summary>
 /// 可添加到工作区的主播搜索结果。
 /// </summary>
-public class LiveRoomSearchResult : ObservableObject
+public sealed class LiveRoomSearchResultViewModel : ObservableObject
 {
-    private LiveRoomSearchSource sources = LiveRoomSearchSource.Nickname;
+    private readonly LiveRoomSearchResult result;
+    private LiveRoomSearchSource sources;
+
+    /// <summary>创建主播搜索结果的本地化展示。</summary>
+    public LiveRoomSearchResultViewModel(LiveRoomSearchResult result)
+    {
+        this.result = result;
+        sources = result.Sources;
+    }
 
     /// <summary>
     /// 直播间 ID。
     /// </summary>
-    public string RoomId { get; init; } = "";
+    public string RoomId => result.RoomId;
 
     /// <summary>短房间号；接口未提供时为空。</summary>
-    public string ShortRoomId { get; init; } = "";
+    public string ShortRoomId => result.ShortRoomId;
 
     /// <summary>合并到当前房间的查找来源。</summary>
     public LiveRoomSearchSource Sources
@@ -37,22 +46,22 @@ public class LiveRoomSearchResult : ObservableObject
     /// <summary>
     /// 主播 UID。
     /// </summary>
-    public string OwnerUid { get; init; } = "";
+    public string OwnerUid => result.OwnerUid;
 
     /// <summary>
     /// 不含搜索高亮的主播昵称。
     /// </summary>
-    public string OwnerName { get; init; } = "";
+    public string OwnerName => result.OwnerName;
 
     /// <summary>
     /// 直播标题。
     /// </summary>
-    public string Title { get; init; } = "";
+    public string Title => result.Title;
 
     /// <summary>
     /// 是否正在直播。
     /// </summary>
-    public bool IsLive { get; init; }
+    public bool IsLive => result.IsLive;
 
     /// <summary>
     /// 列表中的房间与直播状态说明。

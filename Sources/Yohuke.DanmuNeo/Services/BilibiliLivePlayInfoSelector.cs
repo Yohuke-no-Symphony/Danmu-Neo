@@ -1,5 +1,5 @@
 using Yohuke.DanmuNeo.I18n;
-using Yohuke.DanmuNeo.Apis.Models.Bilibili;
+using Yohuke.DanmuCore.Apis.Models.Bilibili;
 using Yohuke.DanmuNeo.Models.Workspace;
 
 namespace Yohuke.DanmuNeo.Services;

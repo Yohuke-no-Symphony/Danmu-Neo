@@ -1,3 +1,5 @@
+using Yohuke.DanmuCore.Models.Search;
+using Yohuke.DanmuCore.Services;
 using System.Threading;
 using Yohuke.DanmuNeo.Models.Workspace;
 using Yohuke.DanmuNeo.Services;

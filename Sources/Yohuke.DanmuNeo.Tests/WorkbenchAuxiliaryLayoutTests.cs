@@ -1,3 +1,4 @@
+using Yohuke.DanmuCore.Models.Search;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -58,10 +59,10 @@ public class WorkbenchAuxiliaryLayoutTests
 
             for (var index = 0; index < 12; index++)
             {
-                context.ViewModel.LiveRoomSearchResults.Add(new()
+                context.ViewModel.LiveRoomSearchResults.Add(new(new()
                 {
                     RoomId = (200 + index).ToString(), OwnerName = $"测试主播 {index}", Title = "直播间搜索结果"
-                });
+                }));
             }
 
             PumpLayout(addRoom);

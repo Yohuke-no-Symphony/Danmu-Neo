@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
         <TargetFramework>net10.0</TargetFramework>
@@ -38,15 +38,13 @@
         <PackageReference Include="Dock.Model.Mvvm" Version="11.3.12.1" />
         <PackageReference Include="Lucide.Avalonia" Version="0.2.0" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-        <PackageReference Include="Google.Protobuf" Version="3.36.2" />
-        <PackageReference Include="Grpc.Tools" Version="2.85.0" PrivateAssets="all" />
         <PackageReference Include="YamlDotNet" Version="18.1.0" />
         <PackageReference Include="RestSharp" Version="114.0.0" />
         <PackageReference Include="RestSharp.Serializers.NewtonsoftJson" Version="114.0.0" />
     </ItemGroup>
 
     <ItemGroup>
-        <Protobuf Include="Apis/Protocols/Bilibili/*.proto" ProtoRoot="Apis/Protocols/Bilibili" GrpcServices="None" Access="Internal" />
+        <ProjectReference Include="../../Core/Sources/Yohuke.DanmuCore/Yohuke.DanmuCore.csproj" />
     </ItemGroup>
 
     <ItemGroup>

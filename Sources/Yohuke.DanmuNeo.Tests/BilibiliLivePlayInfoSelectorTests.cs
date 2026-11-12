@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
-using Yohuke.DanmuNeo.Apis.Models.Bilibili;
-using Yohuke.DanmuNeo.Apis.Models.Common;
+using Yohuke.DanmuCore.Apis.Models.Bilibili;
+using Yohuke.DanmuCore.Apis.Models.Common;
 using Yohuke.DanmuNeo.Services;
 
 namespace Yohuke.DanmuNeo.Tests;

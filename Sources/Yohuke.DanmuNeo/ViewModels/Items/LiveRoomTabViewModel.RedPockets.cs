@@ -1,5 +1,5 @@
 using Avalonia.Threading;
-using Yohuke.DanmuNeo.Apis.Models.Bilibili;
+using Yohuke.DanmuCore.Apis.Models.Bilibili;
 using Yohuke.DanmuNeo.Models.Workspace;
 
 namespace Yohuke.DanmuNeo.ViewModels.Items;
@@ -20,13 +20,13 @@ public partial class LiveRoomTabViewModel
 
     internal void AddRedPocket(BilibiliRedPocketMessage message)
     {
-        if (message.LotId <= 0)
+        if (message.RedPocket.LotId <= 0)
         {
             return;
         }
 
         var item = DanmuItems.OfType<RedPocketFeedItem>()
-            .FirstOrDefault(existing => existing.RoomId == message.RoomId && existing.LotId == message.LotId);
+            .FirstOrDefault(existing => existing.RoomId == message.RoomId && existing.LotId == message.RedPocket.LotId);
         if (item is not null)
         {
             item.Update(message);

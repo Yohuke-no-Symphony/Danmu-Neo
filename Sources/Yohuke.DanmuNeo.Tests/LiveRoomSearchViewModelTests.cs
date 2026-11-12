@@ -1,3 +1,5 @@
+using Yohuke.DanmuNeo.ViewModels.Items;
+using Yohuke.DanmuCore.Models.Search;
 using Yohuke.DanmuNeo.Models.Workspace;
 
 namespace Yohuke.DanmuNeo.Tests;
@@ -148,7 +150,7 @@ public class LiveRoomSearchViewModelTests
         viewModel.LiveRoomSearchText = "主播";
         await viewModel.SearchLiveRoomsAsync();
         viewModel.SelectedWorkspace = viewModel.Workspaces[1];
-        await viewModel.AddSearchedRoomAsync(result);
+        await viewModel.AddSearchedRoomAsync(Assert.Single(viewModel.LiveRoomSearchResults));
 
         Assert.Empty(viewModel.Workspaces[1].Rooms);
         var room = Assert.Single(target.Rooms);
@@ -180,7 +182,7 @@ public class LiveRoomSearchViewModelTests
         var existing = viewModel.Workspaces[0].Rooms.Single();
         existing.RoomId = "00100";
         viewModel.OpenAddRoomDialog(null);
-        var result = LiveRoomSearchTestContext.CreateResult();
+        var result = new LiveRoomSearchResultViewModel(LiveRoomSearchTestContext.CreateResult());
         viewModel.LiveRoomSearchResults.Add(result);
         await viewModel.AddSearchedRoomAsync(result);
 
@@ -216,7 +218,7 @@ public class LiveRoomSearchViewModelTests
         var viewModel = context.ViewModel;
         var target = viewModel.Workspaces[0];
         viewModel.OpenAddRoomDialog(target);
-        var result = LiveRoomSearchTestContext.CreateResult();
+        var result = new LiveRoomSearchResultViewModel(LiveRoomSearchTestContext.CreateResult());
         viewModel.LiveRoomSearchResults.Add(result);
         await viewModel.DeleteWorkspaceAsync(target);
         await viewModel.AddSearchedRoomAsync(result);

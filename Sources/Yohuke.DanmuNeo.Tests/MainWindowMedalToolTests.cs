@@ -1,3 +1,4 @@
+using Yohuke.DanmuCore.Services;
 using Avalonia.Headless.XUnit;
 using Yohuke.DanmuNeo.Layouts;
 using Yohuke.DanmuNeo.Models.State;
@@ -59,7 +60,7 @@ public class MainWindowMedalToolTests
             await using var application = new MainWindowViewModel(new(directory),
                 avatarCacheService: new FakeRoomAvatarService(), loadedState: state,
                 accountSessions: sessions, medalService: medals);
-            await sessions.ValidateAsync(first);
+            await sessions.ValidateAsync(first.Id);
             Assert.Equal(0, medals.OwnerReadCount);
             Assert.Equal(0, medals.ReadCount);
             Assert.Same(first, application.AccountMedals.SelectedAccount);

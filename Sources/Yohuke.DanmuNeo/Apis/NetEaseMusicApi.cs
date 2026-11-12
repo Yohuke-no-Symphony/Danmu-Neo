@@ -1,3 +1,4 @@
+using Yohuke.DanmuCore.Apis;
 using Yohuke.DanmuNeo.Apis.Models.Music;
 
 namespace Yohuke.DanmuNeo.Apis;

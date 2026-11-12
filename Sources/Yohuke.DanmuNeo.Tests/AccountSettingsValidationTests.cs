@@ -1,3 +1,5 @@
+using Yohuke.DanmuCore.Models.Accounts;
+using Yohuke.DanmuCore.Services;
 using Avalonia.Headless.XUnit;
 using Yohuke.DanmuNeo.I18n;
 using Yohuke.DanmuNeo.Models.State;
@@ -20,8 +22,9 @@ public class AccountSettingsValidationTests
     {
         var validation = new ControlledAccountValidationService();
         using var sessions = new BilibiliAccountSessionService(validation);
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         var account = new BilibiliAccount { Name = "工作账号", Cookie = "SESSDATA=offline;bili_jct=csrf" };
-        sessions.Register(account);
+        accountBinding.Register(account);
         using var row = new AccountSettingsItemViewModel(account, sessions, () => TimeSpan.FromSeconds(3));
         Assert.Empty(validation.Requests);
         var refreshing = row.RefreshAsync();
@@ -45,8 +48,9 @@ public class AccountSettingsValidationTests
     {
         var validation = new ControlledAccountValidationService();
         using var sessions = new BilibiliAccountSessionService(validation);
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         var account = new BilibiliAccount { Cookie = "SESSDATA=offline;bili_jct=offline" };
-        sessions.Register(account);
+        accountBinding.Register(account);
         using var row = new AccountSettingsItemViewModel(account, sessions, () => TimeSpan.FromSeconds(3));
         var first = row.RefreshAsync();
         validation.Requests[0].SetResult(new() { Status = AccountValidationStatus.Valid, Uid = 42, UserName = "有效用户" });

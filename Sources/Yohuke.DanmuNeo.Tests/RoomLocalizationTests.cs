@@ -1,6 +1,7 @@
+using Yohuke.DanmuCore.Models.Search;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
-using Yohuke.DanmuNeo.Apis.Models.Bilibili;
+using Yohuke.DanmuCore.Apis.Models.Bilibili;
 using Yohuke.DanmuNeo.I18n;
 using Yohuke.DanmuNeo.Models.State;
 using Yohuke.DanmuNeo.Models.Workspace;
@@ -156,7 +157,7 @@ public sealed class RoomLocalizationTests
     {
         using var language = new LocalizationTestScope();
         Localization.SetLanguage("zh-CN");
-        var result = new LiveRoomSearchResult { RoomId = "100", OwnerName = "主播原名", Title = "直播原标题", IsLive = true };
+        var result = new LiveRoomSearchResultViewModel(new() { RoomId = "100", OwnerName = "主播原名", Title = "直播原标题", IsLive = true });
         var previousDetail = result.DetailLine;
         var changes = new List<string?>();
         result.PropertyChanged += (_, e) => changes.Add(e.PropertyName);
@@ -165,7 +166,7 @@ public sealed class RoomLocalizationTests
         result.RefreshLocalization();
 
         Assert.NotEqual(previousDetail, result.DetailLine);
-        Assert.Contains(nameof(LiveRoomSearchResult.DetailLine), changes);
+        Assert.Contains(nameof(LiveRoomSearchResultViewModel.DetailLine), changes);
         Assert.Equal("主播原名", result.OwnerName);
         Assert.Equal("直播原标题", result.Title);
         Assert.Equal("100", result.RoomId);

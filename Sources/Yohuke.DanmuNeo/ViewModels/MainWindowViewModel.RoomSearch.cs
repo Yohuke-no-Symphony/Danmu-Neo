@@ -1,3 +1,4 @@
+using Yohuke.DanmuCore.Models.Search;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
@@ -41,7 +42,7 @@ public partial class MainWindowViewModel
     /// <summary>
     /// 当前弹窗的主播搜索结果。
     /// </summary>
-    public ObservableCollection<LiveRoomSearchResult> LiveRoomSearchResults { get; } = [];
+    public ObservableCollection<LiveRoomSearchResultViewModel> LiveRoomSearchResults { get; } = [];
 
     /// <summary>发起新查找；空词读取关注，纯数字精确查 UID 和房号。</summary>
     [RelayCommand(CanExecute = nameof(CanSearchLiveRooms), AllowConcurrentExecutions = true)]
@@ -84,7 +85,7 @@ public partial class MainWindowViewModel
 
     /// <summary>将查找结果加入弹窗指定的工作区。</summary>
     [RelayCommand(CanExecute = nameof(CanAddSearchedRoom))]
-    public async Task AddSearchedRoomAsync(LiveRoomSearchResult? result)
+    public async Task AddSearchedRoomAsync(LiveRoomSearchResultViewModel? result)
     {
         if (CanAddSearchedRoom(result) && addDialogWorkspace is { } workspace)
         {
@@ -102,7 +103,7 @@ public partial class MainWindowViewModel
         return CanSearchLiveRooms() && !IsLiveRoomSearching && HasMoreLiveRoomSearchResults;
     }
 
-    private bool CanAddSearchedRoom(LiveRoomSearchResult? result)
+    private bool CanAddSearchedRoom(LiveRoomSearchResultViewModel? result)
     {
         return !isDisposed && IsAddDialogOpen && IsAddingRoom && !IsAddingRoomToWorkspace &&
                result is not null && LiveRoomSearchResults.Contains(result) &&
@@ -150,7 +151,7 @@ public partial class MainWindowViewModel
 
                 if (existing is null)
                 {
-                    LiveRoomSearchResults.Add(result);
+                    LiveRoomSearchResults.Add(new(result));
                 }
                 else
                 {
@@ -168,7 +169,7 @@ public partial class MainWindowViewModel
             {
                 var status = Localization.Format(statusKey, count);
                 return resultPage.Issues.Count == 0 ? status
-                    : string.Join(Environment.NewLine, new[] { status }.Concat(resultPage.Issues.Select(issue => issue.DisplayMessage)));
+                    : string.Join(Environment.NewLine, new[] { status }.Concat(resultPage.Issues.Select(issue => CoreErrorText.GetSearchIssue(issue))));
             });
 
             if (resultPage.Issues.Count > 0)

@@ -1,3 +1,5 @@
+using Yohuke.DanmuCore.Models.Accounts;
+using Yohuke.DanmuCore.Services;
 using System.Threading;
 using Yohuke.DanmuNeo.Models.State;
 using Yohuke.DanmuNeo.Models.Workspace;
@@ -15,8 +17,9 @@ public class AccountSendingIntegrationTests
     public async Task RepeatedBlockedResponsesAllowLaterRecoveryAndNewMessages(string blockedResponse)
     {
         using var sessions = new BilibiliAccountSessionService(new ControlledAccountValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         var account = CreateAccount();
-        sessions.Register(account);
+        accountBinding.Register(account);
         using var handler = new DanmuSendHttpHandler { ResponseJson = """{"code":0,"data":{}}""" };
         for (var index = 0; index < 3; index++)
         {
@@ -61,8 +64,9 @@ public class AccountSendingIntegrationTests
     public async Task AuthenticationFailureIsRecordedAndBlocksLaterRequests()
     {
         using var sessions = new BilibiliAccountSessionService(new ControlledAccountValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         var account = CreateAccount();
-        sessions.Register(account);
+        accountBinding.Register(account);
         using var handler = new DanmuSendHttpHandler { ResponseJson = """{"code":-101,"message":"未登录"}""" };
         using var client = new HttpClient(handler);
         var config = new FakeBilibiliDanmuConfigService();
@@ -85,8 +89,9 @@ public class AccountSendingIntegrationTests
     public async Task ConfigurationAuthenticationFailureBlocksTheSameCredential()
     {
         using var sessions = new BilibiliAccountSessionService(new ControlledAccountValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         var account = CreateAccount();
-        sessions.Register(account);
+        accountBinding.Register(account);
         using var handler = new DanmuConfigHttpHandler();
         handler.Responses.Enqueue("""{"code":-101,"message":"未登录"}""");
         using var client = new HttpClient(handler);
@@ -109,8 +114,9 @@ public class AccountSendingIntegrationTests
     public async Task CookieChangeCancelsBackoffWithoutSendingOldCredentialsAgain()
     {
         using var sessions = new BilibiliAccountSessionService(new ControlledAccountValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         var account = CreateAccount();
-        sessions.Register(account);
+        accountBinding.Register(account);
         var transport = new ScriptedDanmuSendTransport();
         transport.Results.Enqueue(new() { FailureKind = DanmuSendFailureKind.RateLimited });
         var clock = new ManualSendTimeProvider();
@@ -138,10 +144,11 @@ public class AccountSendingIntegrationTests
     public async Task RevokingQueuedAccountPreservesQueueOrder(bool removeAccount)
     {
         using var sessions = new BilibiliAccountSessionService(new ControlledAccountValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         var account = CreateAccount();
         var queuedAccount = CreateAccount("queued");
-        sessions.Register(account);
-        sessions.Register(queuedAccount);
+        accountBinding.Register(account);
+        accountBinding.Register(queuedAccount);
         var configReady = new TaskCompletionSource<DanmuRoomConfig>(TaskCreationOptions.RunContinuationsAsynchronously);
         var config = new FakeBilibiliDanmuConfigService();
         config.ReadAsync = (_, _, _, _) => config.GetRequests.Count == 1
@@ -179,8 +186,9 @@ public class AccountSendingIntegrationTests
     public async Task AccountBecomingExpiredDuringBackoffPreventsNextAttempt()
     {
         using var sessions = new BilibiliAccountSessionService(new ControlledAccountValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         var account = CreateAccount();
-        sessions.Register(account);
+        accountBinding.Register(account);
         var transport = new ScriptedDanmuSendTransport();
         transport.Results.Enqueue(new() { FailureKind = DanmuSendFailureKind.RateLimited });
         var clock = new ManualSendTimeProvider();
@@ -201,8 +209,9 @@ public class AccountSendingIntegrationTests
     public async Task ConfirmedSuccessBeforeCredentialRevocationKeepsAcceptedProgress()
     {
         using var sessions = new BilibiliAccountSessionService(new ControlledAccountValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         var account = CreateAccount();
-        sessions.Register(account);
+        accountBinding.Register(account);
         var transport = new ScriptedDanmuSendTransport
         {
             BeforeResponse = () => account.Cookie = "SESSDATA=changed;bili_jct=changed"

@@ -1,3 +1,4 @@
+using Yohuke.DanmuCore.Diagnostics;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
@@ -259,7 +260,7 @@ public partial class AccountMedalsViewModel : ObservableObject, IDisposable
         {
             if (IsCurrent(account, cookie, revision, operationId))
             {
-                errorDetail = AppLogSanitizer.Sanitize(LocalizedExceptionText.Get(exception));
+                errorDetail = DiagnosticSanitizer.Sanitize(LocalizedExceptionText.Get(exception));
                 SetStatus("Medals.Failed");
                 log.Error(Localization.Get("Medals.Source"), StatusText, exception);
             }

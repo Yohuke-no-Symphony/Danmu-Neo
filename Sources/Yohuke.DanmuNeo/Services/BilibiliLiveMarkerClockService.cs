@@ -1,5 +1,6 @@
+using Yohuke.DanmuCore.Apis;
 using Yohuke.DanmuNeo.Apis;
-using Yohuke.DanmuNeo.Apis.Models.Common;
+using Yohuke.DanmuCore.Apis.Models.Common;
 using Yohuke.DanmuNeo.I18n;
 
 namespace Yohuke.DanmuNeo.Services;

@@ -1,6 +1,6 @@
 using Yohuke.DanmuNeo.I18n;
 using System.Text.RegularExpressions;
-using Yohuke.DanmuNeo.Apis.Models.Bilibili;
+using Yohuke.DanmuCore.Apis.Models.Bilibili;
 using Yohuke.DanmuNeo.Models.State;
 
 namespace Yohuke.DanmuNeo.Services;

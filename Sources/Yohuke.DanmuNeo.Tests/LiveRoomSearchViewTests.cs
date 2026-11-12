@@ -1,3 +1,4 @@
+using Yohuke.DanmuCore.Models.Search;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -72,13 +73,13 @@ public class LiveRoomSearchViewTests
 
         for (var index = 0; index < 42; index++)
         {
-            viewModel.LiveRoomSearchResults.Add(new()
+            viewModel.LiveRoomSearchResults.Add(new(new()
             {
                 RoomId = (100 + index).ToString(),
                 OwnerUid = "42",
                 OwnerName = new string('长', 80),
                 Title = new string('题', 80)
-            });
+            }));
         }
 
         var view = new AddWorkspaceDialogView { DataContext = viewModel };

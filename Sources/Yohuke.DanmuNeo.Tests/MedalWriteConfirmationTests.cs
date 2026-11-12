@@ -1,3 +1,5 @@
+using Yohuke.DanmuCore.Services;
+using Yohuke.DanmuCore.Apis;
 using Yohuke.DanmuNeo.Apis;
 using Yohuke.DanmuNeo.Models.Workspace;
 using Yohuke.DanmuNeo.Services;
@@ -17,10 +19,11 @@ public class MedalWriteConfirmationTests
         var old = service.Collection;
         service.ReadResponse = count => count < 4 ? old : service.Collection;
         using var sessions = new BilibiliAccountSessionService(new MedalValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         using var log = new AppLogService();
         var account = MedalSwitchCoordinatorTests.Account();
-        sessions.Register(account);
-        await sessions.ValidateAsync(account);
+        accountBinding.Register(account);
+        await sessions.ValidateAsync(account.Id);
         await using var coordinator = new MedalSwitchCoordinator(service, sessions, () => Task.CompletedTask,
             () => TimeSpan.FromSeconds(3), log);
 
@@ -42,10 +45,11 @@ public class MedalWriteConfirmationTests
         var old = service.Collection;
         service.ReadResponse = count => count == 1 ? old : throw new IOException("confirmation unavailable");
         using var sessions = new BilibiliAccountSessionService(new MedalValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         using var log = new AppLogService();
         var account = MedalSwitchCoordinatorTests.Account();
-        sessions.Register(account);
-        await sessions.ValidateAsync(account);
+        accountBinding.Register(account);
+        await sessions.ValidateAsync(account.Id);
         await using var coordinator = new MedalSwitchCoordinator(service, sessions, () => Task.CompletedTask,
             () => TimeSpan.FromSeconds(3), log);
 
@@ -71,10 +75,11 @@ public class MedalWriteConfirmationTests
         var old = service.Collection;
         service.ReadResponse = count => count < 4 ? old : service.Collection;
         using var sessions = new BilibiliAccountSessionService(new MedalValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         using var log = new AppLogService();
         var account = MedalSwitchCoordinatorTests.Account(true);
-        sessions.Register(account);
-        await sessions.ValidateAsync(account);
+        accountBinding.Register(account);
+        await sessions.ValidateAsync(account.Id);
         await using var coordinator = new MedalSwitchCoordinator(service, sessions, () => Task.CompletedTask,
             () => TimeSpan.FromSeconds(3), log);
         AccountMedalCollection? published = null;
@@ -95,10 +100,11 @@ public class MedalWriteConfirmationTests
         var old = service.Collection;
         service.ReadResponse = _ => old;
         using var sessions = new BilibiliAccountSessionService(new MedalValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         using var log = new AppLogService();
         var account = MedalSwitchCoordinatorTests.Account();
-        sessions.Register(account);
-        await sessions.ValidateAsync(account);
+        accountBinding.Register(account);
+        await sessions.ValidateAsync(account.Id);
         await using var coordinator = new MedalSwitchCoordinator(service, sessions, () => Task.CompletedTask,
             () => TimeSpan.FromSeconds(3), log);
 
@@ -123,10 +129,11 @@ public class MedalWriteConfirmationTests
             Items = service.Collection.Items.Select(item => item with { IsWearing = false }).ToArray()
         };
         using var sessions = new BilibiliAccountSessionService(new MedalValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         using var log = new AppLogService();
         var account = MedalSwitchCoordinatorTests.Account();
-        sessions.Register(account);
-        await sessions.ValidateAsync(account);
+        accountBinding.Register(account);
+        await sessions.ValidateAsync(account.Id);
         await using var coordinator = new MedalSwitchCoordinator(service, sessions, () => Task.CompletedTask,
             () => TimeSpan.FromSeconds(3), log);
 
@@ -143,16 +150,17 @@ public class MedalWriteConfirmationTests
         var old = service.Collection;
         service.ReadResponse = _ => old;
         using var sessions = new BilibiliAccountSessionService(new MedalValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         using var log = new AppLogService();
         var account = MedalSwitchCoordinatorTests.Account();
-        sessions.Register(account);
-        await sessions.ValidateAsync(account);
+        accountBinding.Register(account);
+        await sessions.ValidateAsync(account.Id);
         await using var coordinator = new MedalSwitchCoordinator(service, sessions, () => Task.CompletedTask,
             () => TimeSpan.FromSeconds(3), log);
 
         Assert.True((await coordinator.WearManuallyAsync(account, 11)).IsWearingStatePending);
         account.Cookie += ";credentialRevision=new";
-        await sessions.ValidateAsync(account);
+        await sessions.ValidateAsync(account.Id);
         var refreshed = await coordinator.RefreshAsync(account);
 
         Assert.False(refreshed.IsWearingStatePending);
@@ -167,10 +175,11 @@ public class MedalWriteConfirmationTests
         var service = new FakeMedalService();
         service.Collection = service.Collection with { IsComplete = false };
         using var sessions = new BilibiliAccountSessionService(new MedalValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         using var log = new AppLogService();
         var account = MedalSwitchCoordinatorTests.Account();
-        sessions.Register(account);
-        await sessions.ValidateAsync(account);
+        accountBinding.Register(account);
+        await sessions.ValidateAsync(account.Id);
         await using var coordinator = new MedalSwitchCoordinator(service, sessions, () => Task.CompletedTask,
             () => TimeSpan.FromSeconds(3), log);
 
@@ -190,10 +199,11 @@ public class MedalWriteConfirmationTests
         service.ReadResponse = _ => old;
         var clock = new ManualSendTimeProvider();
         using var sessions = new BilibiliAccountSessionService(new MedalValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         using var log = new AppLogService();
         var account = MedalSwitchCoordinatorTests.Account();
-        sessions.Register(account);
-        await sessions.ValidateAsync(account);
+        accountBinding.Register(account);
+        await sessions.ValidateAsync(account.Id);
         await using var coordinator = new MedalSwitchCoordinator(service, sessions, () => Task.CompletedTask,
             () => TimeSpan.FromSeconds(3), log, clock);
 
@@ -213,10 +223,11 @@ public class MedalWriteConfirmationTests
     {
         var service = new FakeMedalService { Collection = new([], false) };
         using var sessions = new BilibiliAccountSessionService(new MedalValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         using var log = new AppLogService();
         var account = MedalSwitchCoordinatorTests.Account();
-        sessions.Register(account);
-        await sessions.ValidateAsync(account);
+        accountBinding.Register(account);
+        await sessions.ValidateAsync(account.Id);
         await using var coordinator = new MedalSwitchCoordinator(service, sessions, () => Task.CompletedTask,
             () => TimeSpan.FromSeconds(3), log);
 
@@ -233,17 +244,18 @@ public class MedalWriteConfirmationTests
         var old = service.Collection;
         service.ReadResponse = _ => old;
         using var sessions = new BilibiliAccountSessionService(new MedalValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         using var log = new AppLogService();
         var account = MedalSwitchCoordinatorTests.Account();
-        sessions.Register(account);
-        await sessions.ValidateAsync(account);
+        accountBinding.Register(account);
+        await sessions.ValidateAsync(account.Id);
         await using var coordinator = new MedalSwitchCoordinator(service, sessions, () => Task.CompletedTask,
             () => TimeSpan.FromSeconds(3), log);
 
         Assert.True((await coordinator.WearManuallyAsync(account, 11)).IsWearingStatePending);
         service.ReadError = new BilibiliAuthenticationException("expired");
         await Assert.ThrowsAsync<BilibiliAuthenticationException>(() => coordinator.RefreshAsync(account));
-        await sessions.ValidateAsync(account);
+        await sessions.ValidateAsync(account.Id);
         service.ReadError = null;
         var refreshed = await coordinator.RefreshAsync(account);
 

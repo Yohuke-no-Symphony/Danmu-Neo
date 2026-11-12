@@ -1,3 +1,4 @@
+using Yohuke.DanmuCore.Models.Accounts;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using Yohuke.DanmuNeo.Models.BrowserLogin;

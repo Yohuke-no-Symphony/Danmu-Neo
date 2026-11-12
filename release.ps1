@@ -18,6 +18,7 @@ if ($PSVersionTable.PSVersion.Major -ge 7)
 $repoRoot = $PSScriptRoot
 $solutionPath = Join-Path $repoRoot "Sources/Yohuke.DanmuNeo.sln"
 $projectPath = Join-Path $repoRoot "Sources/Yohuke.DanmuNeo/Yohuke.DanmuNeo.csproj"
+$coreProjectPath = Join-Path $repoRoot "Core/Sources/Yohuke.DanmuCore/Yohuke.DanmuCore.csproj"
 $iconPath = Join-Path $repoRoot "Sources/Yohuke.DanmuNeo/Assets/favicon.ico"
 $macReadmePath = Join-Path $repoRoot "Packaging/macOS/README.txt"
 $windowsInstallerScriptPath = Join-Path $repoRoot "Packaging/Windows/Yohuke.DanmuNeo.WindowsInstaller.ps1"
@@ -422,6 +423,10 @@ function New-MacDmg
 function Invoke-Release
 {
     $runtimeIdentifier = Get-PublishRuntimeIdentifier
+    if (-not (Test-Path -LiteralPath $coreProjectPath -PathType Leaf))
+    {
+        throw "Core submodule is unavailable. Run git submodule update --init --recursive before publishing."
+    }
     Assert-PathExists $solutionPath "Solution"
     Assert-PathExists $projectPath "Project"
     Assert-PathExists $iconPath "Icon"

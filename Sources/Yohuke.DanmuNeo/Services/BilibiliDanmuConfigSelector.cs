@@ -1,7 +1,7 @@
 using Yohuke.DanmuNeo.I18n;
 using System.Globalization;
 using Newtonsoft.Json.Linq;
-using Yohuke.DanmuNeo.Apis.Models.Bilibili;
+using Yohuke.DanmuCore.Apis.Models.Bilibili;
 using Yohuke.DanmuNeo.Models.Workspace;
 
 namespace Yohuke.DanmuNeo.Services;

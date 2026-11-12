@@ -1,3 +1,4 @@
+using Yohuke.DanmuCore.Services;
 namespace Yohuke.DanmuNeo.Services;
 
 /// <summary>直播间接收模块的应用级依赖。</summary>

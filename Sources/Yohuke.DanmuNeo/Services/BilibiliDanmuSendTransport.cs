@@ -1,3 +1,5 @@
+using Yohuke.DanmuCore.Diagnostics;
+using Yohuke.DanmuCore.Apis;
 using Yohuke.DanmuNeo.Apis;
 using Yohuke.DanmuNeo.Models.Workspace;
 
@@ -28,7 +30,7 @@ public sealed class BilibiliDanmuSendTransport(HttpClient? httpClient = null) : 
                 ApiCode = response.Code,
                 Diagnostic = diagnostic,
                 ErrorMessage = failure == DanmuSendFailureKind.None ? "" :
-                    AppLogSanitizer.Sanitize(errorMessage, ApiCookieHelper.Parse(cookie).Values),
+                    DiagnosticSanitizer.Sanitize(errorMessage, ApiCookieHelper.Parse(cookie).Values),
                 StatusKey = failure switch
                 {
                     DanmuSendFailureKind.None => "Services.Send.Accepted",

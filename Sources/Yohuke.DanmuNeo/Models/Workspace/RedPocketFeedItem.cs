@@ -1,4 +1,4 @@
-using Yohuke.DanmuNeo.Apis.Models.Bilibili;
+using Yohuke.DanmuCore.Apis.Models.Bilibili;
 using Yohuke.DanmuNeo.I18n;
 
 namespace Yohuke.DanmuNeo.Models.Workspace;
@@ -10,7 +10,7 @@ public sealed class RedPocketFeedItem : DanmuFeedItem
     private BilibiliRedPocketMessage message;
 
     /// <summary>红包抽奖 ID。</summary>
-    public long LotId => message.LotId;
+    public long LotId => message.RedPocket.LotId;
 
     /// <inheritdoc/>
     public override bool IsRedPocket => true;
@@ -37,13 +37,17 @@ public sealed class RedPocketFeedItem : DanmuFeedItem
         var fallback = preferUpdate ? message : update;
         message = preferred with
         {
-            Uid = preferred.Uid > 0 ? preferred.Uid : fallback.Uid,
-            UserName = string.IsNullOrWhiteSpace(preferred.UserName) ? fallback.UserName : preferred.UserName,
-            Type = preferred.Type ?? fallback.Type,
-            IsMystery = preferred.IsMystery ?? fallback.IsMystery,
-            TotalPrice = preferred.TotalPrice ?? fallback.TotalPrice,
-            TotalBattery = preferred.TotalBattery ?? fallback.TotalBattery,
-            Price = preferred.Price ?? fallback.Price,
+            RedPocket = preferred.RedPocket with
+            {
+                SenderUid = preferred.RedPocket.SenderUid > 0 ? preferred.RedPocket.SenderUid : fallback.RedPocket.SenderUid,
+                SenderName = string.IsNullOrWhiteSpace(preferred.RedPocket.SenderName)
+                    ? fallback.RedPocket.SenderName : preferred.RedPocket.SenderName,
+                Type = preferred.RedPocket.Type ?? fallback.RedPocket.Type,
+                IsMystery = preferred.RedPocket.IsMystery ?? fallback.RedPocket.IsMystery,
+                TotalPrice = preferred.RedPocket.TotalPrice ?? fallback.RedPocket.TotalPrice,
+                TotalBattery = preferred.RedPocket.TotalBattery ?? fallback.RedPocket.TotalBattery,
+                Price = preferred.RedPocket.Price ?? fallback.RedPocket.Price
+            },
             IsDrawn = update.IsDrawn || message.IsDrawn,
             Timestamp = Math.Max(update.Timestamp, message.Timestamp)
         };
@@ -54,12 +58,12 @@ public sealed class RedPocketFeedItem : DanmuFeedItem
     public override void RefreshLocalization()
     {
         base.RefreshLocalization();
-        UserName = string.IsNullOrWhiteSpace(message.UserName)
+        UserName = string.IsNullOrWhiteSpace(message.RedPocket.SenderName)
             ? Localization.Get("Room.RedPocket.UnknownSender")
-            : message.UserName;
-        UserUid = message.IsMystery == true || message.Uid <= 0
+            : message.RedPocket.SenderName;
+        UserUid = message.RedPocket.IsMystery == true || message.RedPocket.SenderUid <= 0
             ? ""
-            : message.Uid.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            : message.RedPocket.SenderUid.ToString(System.Globalization.CultureInfo.InvariantCulture);
         var value = FormatValue();
         Content = Localization.Format(message.IsDrawn ? "Room.RedPocket.DrawnContent" : "Room.RedPocket.WaitingContent",
             value.Length > 0 ? $" · {value}" : "");
@@ -67,22 +71,22 @@ public sealed class RedPocketFeedItem : DanmuFeedItem
 
     private string FormatValue()
     {
-        if (message.Type is 3 or 5 && (message.TotalBattery ?? message.TotalPrice) is { } battery)
+        if (message.RedPocket.Type is 3 or 5 && (message.RedPocket.TotalBattery ?? message.RedPocket.TotalPrice) is { } battery)
         {
             return Localization.Format("Room.RedPocket.BatteryValue", battery / 100m);
         }
 
-        if (message.Type == 4)
+        if (message.RedPocket.Type == 4)
         {
             return Localization.Get("Room.RedPocket.IntimacyValue");
         }
 
-        if (message.TotalPrice is { } totalPrice)
+        if (message.RedPocket.TotalPrice is { } totalPrice)
         {
             return Localization.Format("Room.RedPocket.MoneyValue", totalPrice / 1000m);
         }
 
-        return message.Price is { } price
+        return message.RedPocket.Price is { } price
             ? Localization.Format("Room.RedPocket.BatteryValue", price)
             : "";
     }

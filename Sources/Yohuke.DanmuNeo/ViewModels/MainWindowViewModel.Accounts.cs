@@ -1,3 +1,5 @@
+using Yohuke.DanmuCore.Models.Accounts;
+using Yohuke.DanmuCore.Services;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
@@ -5,7 +7,6 @@ using Avalonia.Threading;
 using Yohuke.DanmuNeo.I18n;
 using Yohuke.DanmuNeo.Models.BrowserLogin;
 using Yohuke.DanmuNeo.Models.State;
-using Yohuke.DanmuNeo.Models.Workspace;
 using Yohuke.DanmuNeo.Services;
 using Yohuke.DanmuNeo.ViewModels.Items;
 
@@ -15,6 +16,7 @@ public partial class MainWindowViewModel
 {
     private readonly IBilibiliAccountSessionService accountSessions;
     private readonly bool ownsAccountSessions;
+    private readonly BilibiliAccountSessionBinding accountSessionBinding;
     private bool accountValidationStarted;
     private bool accountNamingStopped;
     private CancellationTokenSource? accountContextRefreshTokenSource;
@@ -77,7 +79,7 @@ public partial class MainWindowViewModel
 
     private void AddAccountItem(BilibiliAccount account)
     {
-        accountSessions.Register(account);
+        accountSessionBinding.Register(account);
         var item = new AccountSettingsItemViewModel(account, accountSessions,
             () => TimeSpan.FromSeconds(Math.Max(0.1, Settings.TimeoutSeconds)));
         AccountItems.Add(item);
@@ -94,7 +96,7 @@ public partial class MainWindowViewModel
         {
             item.Dispose();
             item.Account.PropertyChanged -= OnStoredAccountChanged;
-            accountSessions.Remove(item.Account.Id);
+            accountSessionBinding.Remove(item.Account.Id);
             AccountItems.Remove(item);
         }
 
@@ -177,10 +179,11 @@ public partial class MainWindowViewModel
         {
             item.Dispose();
             item.Account.PropertyChanged -= OnStoredAccountChanged;
-            accountSessions.Remove(item.Account.Id);
+            accountSessionBinding.Remove(item.Account.Id);
         }
 
         AccountItems.Clear();
+        accountSessionBinding.Dispose();
         if (ownsAccountSessions)
         {
             accountSessions.Dispose();

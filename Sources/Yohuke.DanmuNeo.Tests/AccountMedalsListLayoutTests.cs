@@ -1,3 +1,4 @@
+using Yohuke.DanmuCore.Services;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
@@ -40,10 +41,11 @@ public class AccountMedalsListLayoutTests
         using var context = new WorkbenchContext(fixture.ViewModel);
         using var log = new AppLogService();
         using var sessions = new BilibiliAccountSessionService(new MedalValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         var account = MedalSwitchCoordinatorTests.Account();
         account.Name = "离线测试账号";
-        sessions.Register(account);
-        await sessions.ValidateAsync(account);
+        accountBinding.Register(account);
+        await sessions.ValidateAsync(account.Id);
         var medals = new AccountMedal[]
         {
             new(1, 623441612, "牵丝蝠", 35, true, "椎名莱羽Official"),

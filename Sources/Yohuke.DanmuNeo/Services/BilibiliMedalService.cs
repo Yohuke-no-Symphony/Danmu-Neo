@@ -1,5 +1,7 @@
+using Yohuke.DanmuCore.Diagnostics;
+using Yohuke.DanmuCore.Apis;
 using Yohuke.DanmuNeo.Apis;
-using Yohuke.DanmuNeo.Apis.Models.Common;
+using Yohuke.DanmuCore.Apis.Models.Common;
 using Yohuke.DanmuNeo.I18n;
 using Yohuke.DanmuNeo.Models.Workspace;
 
@@ -88,7 +90,7 @@ public sealed class BilibiliMedalService(HttpClient? httpClient = null) : IBilib
         {
             return;
         }
-        var detail = AppLogSanitizer.Sanitize(response.Message ?? response.Msg ?? "");
+        var detail = DiagnosticSanitizer.Sanitize(response.Message ?? response.Msg ?? "");
         var message = Localization.Format("Medals.ApiFailed", response.Code, detail);
         throw authenticated && response.Code == -101
             ? new BilibiliAuthenticationException(message) : new InvalidOperationException(message);

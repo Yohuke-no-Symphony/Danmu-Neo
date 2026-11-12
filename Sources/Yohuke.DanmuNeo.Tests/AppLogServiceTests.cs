@@ -1,3 +1,4 @@
+using Yohuke.DanmuCore.Diagnostics;
 using System.Threading;
 using Yohuke.DanmuNeo.Models.Logging;
 using Yohuke.DanmuNeo.Services;
@@ -33,9 +34,9 @@ public class AppLogServiceTests
     [InlineData("Cookie: SESSDATA=secret")]
     public void RepeatedSanitizationKeepsRedactedTextStable(string text)
     {
-        var sanitized = AppLogSanitizer.Sanitize(text);
+        var sanitized = DiagnosticSanitizer.Sanitize(text);
 
-        Assert.Equal(sanitized, AppLogSanitizer.Sanitize(sanitized));
+        Assert.Equal(sanitized, DiagnosticSanitizer.Sanitize(sanitized));
     }
 
     /// <summary>仅保留最近记录，未读数跟随仍保留的错误且序号不会复用。</summary>
@@ -182,7 +183,7 @@ public class AppLogServiceTests
     [InlineData("Error: failed fetch http://localhost:19200/diagnostic/local-session-secret\n    at player.js:42", "/diagnostic/")]
     public void SanitizesLoopbackSessionPathsAcrossEntryAndSharedSanitizer(string text, string route)
     {
-        var sanitized = AppLogSanitizer.Sanitize(text);
+        var sanitized = DiagnosticSanitizer.Sanitize(text);
         Assert.DoesNotContain("local-session-secret", sanitized);
         Assert.Contains(route + "[已隐藏]", sanitized);
 
@@ -200,7 +201,7 @@ public class AppLogServiceTests
     [InlineData("http://localhost:19200/assets/player.js", "http://localhost:19200/assets/player.js")]
     public void KeepsRemoteAndOrdinaryLocalPaths(string text, string expected)
     {
-        Assert.Equal(expected, AppLogSanitizer.Sanitize(text));
+        Assert.Equal(expected, DiagnosticSanitizer.Sanitize(text));
     }
 
     /// <summary>普通来源、房间号和异常堆栈不因脱敏而丢失。</summary>

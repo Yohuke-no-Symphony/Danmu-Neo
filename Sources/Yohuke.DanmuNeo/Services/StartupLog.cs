@@ -1,3 +1,4 @@
+using Yohuke.DanmuCore.Diagnostics;
 using Yohuke.DanmuNeo.I18n;
 using Yohuke.DanmuNeo.Models.Logging;
 
@@ -19,7 +20,7 @@ public static class StartupLog
     public static void Append(string message, AppLogLevel level = AppLogLevel.INFO,
         string? source = null, Exception? error = null)
     {
-        var safeMessage = AppLogSanitizer.Sanitize(message);
+        var safeMessage = DiagnosticSanitizer.Sanitize(message);
 
         try
         {
@@ -41,7 +42,7 @@ public static class StartupLog
                     isInitialized = true;
                 }
 
-                var details = error is null ? "" : Environment.NewLine + AppLogSanitizer.Sanitize(error.ToString());
+                var details = error is null ? "" : Environment.NewLine + DiagnosticSanitizer.Sanitize(error.ToString());
                 File.AppendAllText(path, $"{DateTimeOffset.Now:O} {level} {safeMessage}{details}{Environment.NewLine}");
             }
         }

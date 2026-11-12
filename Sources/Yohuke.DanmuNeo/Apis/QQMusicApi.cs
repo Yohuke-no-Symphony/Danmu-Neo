@@ -1,3 +1,4 @@
+using Yohuke.DanmuCore.Apis;
 using Yohuke.DanmuNeo.I18n;
 using System.Net;
 using System.Text.RegularExpressions;

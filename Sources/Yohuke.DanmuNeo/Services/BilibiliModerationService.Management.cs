@@ -1,3 +1,4 @@
+using Yohuke.DanmuCore.Apis;
 using System.Globalization;
 using System.Net;
 using System.Text.RegularExpressions;
@@ -133,7 +134,7 @@ public partial class BilibiliModerationService
             return new() { Users = [new() { Uid = user.Uid, UserName = user.Name ?? "" }] };
         }
 
-        var searchResponse = await api.SearchUsersAsync(keyword, page, timeout, cancellationToken);
+        var searchResponse = await api.SearchUsersAsync(keyword, page: page, timeout: timeout, cancellationToken: cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
         if (searchResponse.Code != 0)

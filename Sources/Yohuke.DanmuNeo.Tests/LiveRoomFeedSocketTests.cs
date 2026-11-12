@@ -1,6 +1,6 @@
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
-using Yohuke.DanmuNeo.Apis.Models.Bilibili;
+using Yohuke.DanmuCore.Apis.Models.Bilibili;
 using Yohuke.DanmuNeo.Models.Workspace;
 
 namespace Yohuke.DanmuNeo.Tests;

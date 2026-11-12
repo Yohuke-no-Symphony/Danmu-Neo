@@ -1,3 +1,4 @@
+using Yohuke.DanmuCore.Services;
 using System.Collections.ObjectModel;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
@@ -17,9 +18,10 @@ public class AccountMedalsViewModelTests
     {
         using var log = new AppLogService();
         using var sessions = new BilibiliAccountSessionService(new MedalValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         var account = MedalSwitchCoordinatorTests.Account();
-        sessions.Register(account);
-        await sessions.ValidateAsync(account);
+        accountBinding.Register(account);
+        await sessions.ValidateAsync(account.Id);
         var save = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         await using var coordinator = new MedalSwitchCoordinator(new FakeMedalService(), sessions,
             () => save.Task, () => TimeSpan.FromSeconds(3), log);
@@ -61,9 +63,10 @@ public class AccountMedalsViewModelTests
     {
         using var log = new AppLogService();
         using var sessions = new BilibiliAccountSessionService(new MedalValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         var account = MedalSwitchCoordinatorTests.Account();
-        sessions.Register(account);
-        await sessions.ValidateAsync(account);
+        accountBinding.Register(account);
+        await sessions.ValidateAsync(account.Id);
         var service = new FakeMedalService();
         await using var coordinator = new MedalSwitchCoordinator(service, sessions, () => Task.CompletedTask, () => TimeSpan.FromSeconds(3), log);
         using var viewModel = new AccountMedalsViewModel(new([account]), coordinator, log);
@@ -85,9 +88,10 @@ public class AccountMedalsViewModelTests
     {
         using var log = new AppLogService();
         using var sessions = new BilibiliAccountSessionService(new MedalValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         var account = MedalSwitchCoordinatorTests.Account();
-        sessions.Register(account);
-        await sessions.ValidateAsync(account);
+        accountBinding.Register(account);
+        await sessions.ValidateAsync(account.Id);
         var service = new FakeMedalService
         {
             ReadStarted = new(TaskCreationOptions.RunContinuationsAsynchronously),
@@ -115,12 +119,13 @@ public class AccountMedalsViewModelTests
     {
         using var log = new AppLogService();
         using var sessions = new BilibiliAccountSessionService(new MedalValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         var first = MedalSwitchCoordinatorTests.Account();
         var second = MedalSwitchCoordinatorTests.Account();
-        sessions.Register(first);
-        sessions.Register(second);
-        await sessions.ValidateAsync(first);
-        await sessions.ValidateAsync(second);
+        accountBinding.Register(first);
+        accountBinding.Register(second);
+        await sessions.ValidateAsync(first.Id);
+        await sessions.ValidateAsync(second.Id);
         await using var coordinator = new MedalSwitchCoordinator(new FakeMedalService(), sessions, () => Task.CompletedTask, () => TimeSpan.FromSeconds(3), log);
         using var viewModel = new AccountMedalsViewModel(new([first, second]), coordinator, log);
         Assert.True(viewModel.FollowCurrentAccount);
@@ -144,9 +149,10 @@ public class AccountMedalsViewModelTests
     {
         using var log = new AppLogService();
         using var sessions = new BilibiliAccountSessionService(new MedalValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         var account = MedalSwitchCoordinatorTests.Account(true);
-        sessions.Register(account);
-        await sessions.ValidateAsync(account);
+        accountBinding.Register(account);
+        await sessions.ValidateAsync(account.Id);
         var service = new FakeMedalService();
         var saves = 0;
         await using var coordinator = new MedalSwitchCoordinator(service, sessions, () => { saves++; return Task.CompletedTask; }, () => TimeSpan.FromSeconds(3), log);
@@ -169,9 +175,10 @@ public class AccountMedalsViewModelTests
     {
         using var log = new AppLogService();
         using var sessions = new BilibiliAccountSessionService(new MedalValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         var account = MedalSwitchCoordinatorTests.Account();
-        sessions.Register(account);
-        await sessions.ValidateAsync(account);
+        accountBinding.Register(account);
+        await sessions.ValidateAsync(account.Id);
         var service = new FakeMedalService();
         var old = service.Collection;
         await using var coordinator = new MedalSwitchCoordinator(service, sessions, () => Task.CompletedTask,
@@ -207,9 +214,10 @@ public class AccountMedalsViewModelTests
     {
         using var log = new AppLogService();
         using var sessions = new BilibiliAccountSessionService(new MedalValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         var account = MedalSwitchCoordinatorTests.Account();
-        sessions.Register(account);
-        await sessions.ValidateAsync(account);
+        accountBinding.Register(account);
+        await sessions.ValidateAsync(account.Id);
         await using var coordinator = new MedalSwitchCoordinator(new FakeMedalService(), sessions, () => Task.CompletedTask, () => TimeSpan.FromSeconds(3), log);
         var accounts = new ObservableCollection<BilibiliAccount> { account };
         using var viewModel = new AccountMedalsViewModel(accounts, coordinator, log);

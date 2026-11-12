@@ -1,3 +1,4 @@
+using Yohuke.DanmuCore.Services;
 using Yohuke.DanmuNeo.Services;
 
 namespace Yohuke.DanmuNeo.ViewModels.Items;

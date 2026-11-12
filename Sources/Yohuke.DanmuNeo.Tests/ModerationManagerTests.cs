@@ -1,3 +1,5 @@
+using Yohuke.DanmuCore.Models.Accounts;
+using Yohuke.DanmuCore.Apis;
 using System.Threading;
 using Avalonia.Headless.XUnit;
 using Yohuke.DanmuNeo.Apis;

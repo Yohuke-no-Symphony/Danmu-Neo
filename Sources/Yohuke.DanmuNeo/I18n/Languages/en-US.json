@@ -437,6 +437,7 @@
     "Room.Draft.Sending": "Sending",
     "Room.Draft.ServiceUnavailable": "Send failed: sending service unavailable",
     "Room.GiftContent": "Sent {0} × {1}{2}",
+    "Room.RedPocket.FailedCode": "Could not load red pocket information (code {0}).",
     "Room.RedPocket.BatteryValue": "{0:0.##} batteries",
     "Room.RedPocket.DrawnContent": "Red pocket · Drawn{0}",
     "Room.RedPocket.IntimacyValue": "Intimacy red pocket",

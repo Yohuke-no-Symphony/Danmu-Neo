@@ -1,3 +1,6 @@
+using Yohuke.DanmuCore.Models.Accounts;
+using Yohuke.DanmuCore.Services;
+using Yohuke.DanmuCore.Apis;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using Yohuke.DanmuNeo.Apis;
@@ -17,10 +20,11 @@ public class LiveRoomHistoryTests
     public async Task HistoryAuthenticationFailureInvalidatesOnlyMatchingAccount()
     {
         using var sessions = new BilibiliAccountSessionService(new ControlledAccountValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         var account = new BilibiliAccount { Id = "account", Cookie = "SESSDATA=test;bili_jct=test" };
         var other = new BilibiliAccount { Id = "other", Cookie = "SESSDATA=other;bili_jct=other" };
-        sessions.Register(account);
-        sessions.Register(other);
+        accountBinding.Register(account);
+        accountBinding.Register(other);
         var socket = new FakeLiveDanmuSocket { KeepRunning = true };
         var history = new ControlledDanmuHistoryService();
         using var room = CreateRoom(socket, history, () => account, accountSessions: sessions);

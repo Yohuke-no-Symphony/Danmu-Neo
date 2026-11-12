@@ -1,3 +1,6 @@
+using Yohuke.DanmuCore.Models.Accounts;
+using Yohuke.DanmuCore.Services;
+using Yohuke.DanmuCore.Apis;
 using Yohuke.DanmuNeo.Apis;
 using Yohuke.DanmuNeo.Models.Workspace;
 using Yohuke.DanmuNeo.Services;
@@ -16,8 +19,9 @@ public class RoomModerationTests
     public async Task AuthenticationFailureInvalidatesCapturedAccount(bool duringWrite)
     {
         using var sessions = new BilibiliAccountSessionService(new ControlledAccountValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         using var context = new RoomModerationTestContext(accountSessions: sessions);
-        sessions.Register(context.Account);
+        accountBinding.Register(context.Account);
         if (duringWrite)
         {
             Assert.True(await context.Room.RefreshModerationPermissionAsync(context.Item));

@@ -2,7 +2,7 @@ using System.Net;
 using Avalonia.Headless.XUnit;
 using Newtonsoft.Json;
 using Yohuke.DanmuNeo.Apis;
-using Yohuke.DanmuNeo.Apis.Models.Bilibili;
+using Yohuke.DanmuCore.Apis.Models.Bilibili;
 using Yohuke.DanmuNeo.I18n;
 using Yohuke.DanmuNeo.Models.BrowserLogin;
 using Yohuke.DanmuNeo.Models.State;
@@ -32,7 +32,7 @@ public sealed class ServiceLocalizationTests
             service.GetPlatformName(BrowserLoginPlatform.Bilibili));
         var error = Assert.Throws<InvalidOperationException>(() =>
             service.CreateResult(BrowserLoginPlatform.Bilibili, []));
-        Assert.Equal(Localization.Get("Services.BrowserLogin.BilibiliCookiesMissing"), error.Message);
+        Assert.Equal(Localization.Get("Services.BrowserLogin.BilibiliCookiesMissing"), LocalizedExceptionText.Get(error));
 
         var result = service.CreateResult(BrowserLoginPlatform.Bilibili,
         [
@@ -222,7 +222,7 @@ public sealed class ServiceLocalizationTests
         var error = await Assert.ThrowsAsync<JsonSerializationException>(() =>
             new BilibiliUserNameService(client).GetUserNameAsync(42));
 
-        Assert.Equal(Localization.Get("Services.Api.EmptyJsonResult"), error.Message);
+        Assert.Equal(Localization.Get("Services.Api.EmptyJsonResult"), LocalizedExceptionText.Get(error));
     }
 
     /// <summary>

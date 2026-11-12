@@ -1,3 +1,4 @@
+using Yohuke.DanmuCore.Diagnostics;
 using Yohuke.DanmuNeo.Models.Logging;
 
 namespace Yohuke.DanmuNeo.Services;
@@ -73,7 +74,7 @@ public sealed class AppLogService : IAppLogService
     public void SetDiagnosticError(string source, Exception? error)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(source);
-        var details = error is null ? null : AppLogSanitizer.Sanitize(error.ToString());
+        var details = error is null ? null : DiagnosticSanitizer.Sanitize(error.ToString());
 
         lock (gate)
         {
@@ -163,8 +164,8 @@ public sealed class AppLogService : IAppLogService
     private void AppendCore(AppLogLevel level, string source, string message, string? details)
     {
         entries.Enqueue(new(++sequence, DateTimeOffset.UtcNow, level,
-            AppLogSanitizer.Sanitize(source), AppLogSanitizer.Sanitize(message),
-            AppLogSanitizer.Sanitize(details ?? string.Empty)));
+            DiagnosticSanitizer.Sanitize(source), DiagnosticSanitizer.Sanitize(message),
+            DiagnosticSanitizer.Sanitize(details ?? string.Empty)));
 
         while (entries.Count > capacity)
         {

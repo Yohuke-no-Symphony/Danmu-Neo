@@ -1,3 +1,6 @@
+using Yohuke.DanmuCore.Models.Accounts;
+using Yohuke.DanmuCore.Services;
+using Yohuke.DanmuCore.Apis;
 using System.ComponentModel;
 using Yohuke.DanmuNeo.Apis;
 using Yohuke.DanmuNeo.I18n;
@@ -444,7 +447,7 @@ public sealed partial class MedalSwitchCoordinator : IDisposable, IAsyncDisposab
         var state = sessions.GetState(intent.Account.Id);
         if (validate && (state.Status != AccountValidationStatus.Valid || state.Uid <= 0))
         {
-            state = await sessions.ValidateAsync(intent.Account, getTimeout(), request.Token).ConfigureAwait(false);
+            state = await sessions.ValidateAsync(intent.Account.Id, getTimeout(), request.Token).ConfigureAwait(false);
         }
         request.Token.ThrowIfCancellationRequested();
         if (state.Status != AccountValidationStatus.Valid || state.Uid <= 0 || intent.Account.Cookie != intent.Cookie ||

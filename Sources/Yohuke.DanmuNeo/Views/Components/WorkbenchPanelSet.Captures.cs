@@ -1,3 +1,4 @@
+using Yohuke.DanmuCore.Diagnostics;
 using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
@@ -103,7 +104,7 @@ public sealed partial class WorkbenchPanelSet
         {
             if (!capturesDisposed)
             {
-                gallery.ReportCaptureFailure(AppLogSanitizer.Sanitize(LocalizedExceptionText.Get(exception)));
+                gallery.ReportCaptureFailure(DiagnosticSanitizer.Sanitize(LocalizedExceptionText.Get(exception)));
                 context.Application.Log.Error(Localization.Get("Captures.Source"),
                     Localization.Get("Captures.CaptureFailedLog"), exception);
             }
@@ -152,7 +153,7 @@ public sealed partial class WorkbenchPanelSet
         {
             if (!capturesDisposed)
             {
-                gallery.ReportNoteFailure(AppLogSanitizer.Sanitize(LocalizedExceptionText.Get(exception)));
+                gallery.ReportNoteFailure(DiagnosticSanitizer.Sanitize(LocalizedExceptionText.Get(exception)));
                 ShowCaptureSaveFailure("Captures.PendingNoteSaveStatus");
             }
         }

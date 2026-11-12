@@ -1,3 +1,4 @@
+using Yohuke.DanmuCore.Services;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.Globalization;
@@ -6,7 +7,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Yohuke.DanmuNeo.Apis.Models.Bilibili;
+using Yohuke.DanmuCore.Apis.Models.Bilibili;
 using Yohuke.DanmuNeo.I18n;
 using Yohuke.DanmuNeo.Models.State;
 using Yohuke.DanmuNeo.Models.Workspace;

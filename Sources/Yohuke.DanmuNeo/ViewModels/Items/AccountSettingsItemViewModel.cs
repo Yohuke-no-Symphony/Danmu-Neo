@@ -1,3 +1,5 @@
+using Yohuke.DanmuCore.Models.Accounts;
+using Yohuke.DanmuCore.Services;
 using System.ComponentModel;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -92,7 +94,7 @@ public partial class AccountSettingsItemViewModel : ObservableObject, IDisposabl
     {
         if (!isDisposed)
         {
-            await sessions.ValidateAsync(Account, getTimeout(), cancellationToken).ConfigureAwait(false);
+            await sessions.ValidateAsync(Account.Id, getTimeout(), cancellationToken).ConfigureAwait(false);
         }
     }
 

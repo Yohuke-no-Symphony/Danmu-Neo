@@ -1,5 +1,5 @@
 using Newtonsoft.Json.Linq;
-using Yohuke.DanmuNeo.Apis.Models.Bilibili;
+using Yohuke.DanmuCore.Apis.Models.Bilibili;
 using Yohuke.DanmuNeo.Services;
 
 namespace Yohuke.DanmuNeo.Tests;

@@ -1,3 +1,4 @@
+using Yohuke.DanmuCore.Services;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -380,8 +381,9 @@ public class DanmuBlockedRetryTests
     public async Task CredentialRevocationCancelsPendingRetry()
     {
         using var sessions = new BilibiliAccountSessionService(new ControlledAccountValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         var account = CreateAccount();
-        sessions.Register(account);
+        accountBinding.Register(account);
         var transport = new ScriptedDanmuSendTransport();
         transport.Results.Enqueue(new() { FailureKind = DanmuSendFailureKind.Blocked });
         var clock = new ManualSendTimeProvider();
@@ -404,8 +406,9 @@ public class DanmuBlockedRetryTests
     public async Task ConfirmedRetrySuccessDuringCredentialRevocationKeepsSourceProgress()
     {
         using var sessions = new BilibiliAccountSessionService(new ControlledAccountValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         var account = CreateAccount();
-        sessions.Register(account);
+        accountBinding.Register(account);
         var transport = new ScriptedDanmuSendTransport();
         transport.Results.Enqueue(new() { FailureKind = DanmuSendFailureKind.Blocked });
         transport.BeforeResponse = () =>

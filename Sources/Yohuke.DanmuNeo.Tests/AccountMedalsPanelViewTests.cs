@@ -1,3 +1,4 @@
+using Yohuke.DanmuCore.Services;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -25,9 +26,10 @@ public class AccountMedalsPanelViewTests
         using var context = new WorkbenchContext(fixture.ViewModel);
         using var log = new AppLogService();
         using var sessions = new BilibiliAccountSessionService(new MedalValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         var account = MedalSwitchCoordinatorTests.Account();
-        sessions.Register(account);
-        await sessions.ValidateAsync(account);
+        accountBinding.Register(account);
+        await sessions.ValidateAsync(account.Id);
         var service = new FakeMedalService();
         var old = service.Collection;
         await using var coordinator = new MedalSwitchCoordinator(service, sessions, () => Task.CompletedTask,
@@ -91,10 +93,11 @@ public class AccountMedalsPanelViewTests
         using var context = new WorkbenchContext(fixture.ViewModel);
         using var log = new AppLogService();
         using var sessions = new BilibiliAccountSessionService(new MedalValidationService());
+        using var accountBinding = new BilibiliAccountSessionBinding(sessions);
         var account = MedalSwitchCoordinatorTests.Account();
         account.Name = "离线测试账号";
-        sessions.Register(account);
-        await sessions.ValidateAsync(account);
+        accountBinding.Register(account);
+        await sessions.ValidateAsync(account.Id);
         var service = new FakeMedalService();
         await using var coordinator = new MedalSwitchCoordinator(service, sessions, () => Task.CompletedTask, () => TimeSpan.FromSeconds(3), log);
         using var viewModel = new AccountMedalsViewModel(new([account]), coordinator, log);
