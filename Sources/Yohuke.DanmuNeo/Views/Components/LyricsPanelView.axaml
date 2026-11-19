@@ -3,6 +3,7 @@
                                xmlns:workspace="clr-namespace:Yohuke.DanmuNeo.Models.Workspace"
                                xmlns:components="clr-namespace:Yohuke.DanmuNeo.Views.Components"
                                xmlns:items="clr-namespace:Yohuke.DanmuNeo.ViewModels.Items"
+                               xmlns:converters="using:Avalonia.Data.Converters"
                                x:Class="Yohuke.DanmuNeo.Views.Components.LyricsPanelView"
                                x:DataType="items:LiveRoomTabViewModel"
                                x:CompileBindings="True"
@@ -108,23 +109,14 @@
                     <Button x:Name="LyricAutoSendButton"
                             ToolTip.Tip="{Binding LyricAutoSendingToggleToolTip}"
                             AutomationProperties.Name="{Binding LyricAutoSendingToggleToolTip}"
-                            Classes="lyricToolbarButton primaryButton"
-                            Padding="8,4"
+                            Classes="iconButton primaryButton"
                             Command="{Binding ToggleAutoLyricCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <Grid>
-                                <LucideIcon Kind="Play"
-                                            IsVisible="{Binding IsLyricAutoSendingPaused}" />
-                                <LucideIcon Kind="Pause"
-                                            IsVisible="{Binding IsLyricAutoSending}" />
-                            </Grid>
-                            <Grid>
-                                <TextBlock Text="{Loc Key=UI.LyricsPanelView.StartAutoSending}"
-                                           IsVisible="{Binding IsLyricAutoSendingPaused}" />
-                                <TextBlock Text="{Loc Key=UI.LyricsPanelView.PauseSending}"
-                                           IsVisible="{Binding IsLyricAutoSending}" />
-                            </Grid>
-                        </StackPanel>
+                        <Grid>
+                            <LucideIcon Kind="Play"
+                                        IsVisible="{Binding IsLyricAutoSendingPaused}" />
+                            <LucideIcon Kind="Pause"
+                                        IsVisible="{Binding IsLyricAutoSending}" />
+                        </Grid>
                     </Button>
                     <Button x:Name="LyricStopButton"
                             Grid.Column="1"
@@ -212,7 +204,9 @@
             <ListBox x:Name="LyricListBox"
                      Grid.Row="3"
                      Classes="lyricLineList"
+                     AutoScrollToSelectedItem="False"
                      ItemsSource="{Binding Lyrics}"
+                     ScrollViewer.ScrollChanged="LyricListBox_OnScrollChanged"
                      SelectedItem="{Binding ActiveLyricLine, Mode=OneWay}">
                 <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="workspace:LyricLineState">
@@ -225,9 +219,15 @@
                                              Minimum="0"
                                              Maximum="1"
                                              Value="{Binding Progress}"
-                                             IsHitTestVisible="False" />
-                                <Grid ColumnDefinitions="56,*"
-                                      Margin="0,1">
+                                             IsHitTestVisible="False">
+                                    <ProgressBar.IsVisible>
+                                        <MultiBinding Converter="{x:Static converters:BoolConverters.And}">
+                                            <Binding Path="IsActive" />
+                                            <Binding Path="Timeline" Converter="{x:Static converters:StringConverters.IsNotNullOrEmpty}" />
+                                        </MultiBinding>
+                                    </ProgressBar.IsVisible>
+                                </ProgressBar>
+                                <Grid ColumnDefinitions="56,*" Margin="6,5">
                                     <TextBlock Text="{Binding Timeline}"
                                                Classes="muted"
                                                VerticalAlignment="Center" />

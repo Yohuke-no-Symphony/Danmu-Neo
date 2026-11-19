@@ -66,6 +66,8 @@ public partial class LiveRoomTabViewModel : ViewModelBase, IDisposable
     private readonly LyricTimelineService lyricTimelineService = new();
     private readonly TranslateHistoryExportService translateHistoryExportService = new();
 
+    internal event EventHandler? LyricPlaybackStopped;
+
     /// <summary>
     /// 初始化直播间标签页视图模型。
     /// </summary>
@@ -730,7 +732,7 @@ public partial class LiveRoomTabViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     public void ApplyLyric()
     {
-        StopAutoLyric(false);
+        PauseAutoLyric();
         Lyrics.Clear();
 
         foreach (var line in lyricTimelineService.ParseMultilingual(LyricInput, TranslatedLyricInput))
@@ -748,7 +750,7 @@ public partial class LiveRoomTabViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     public void ClearLyric()
     {
-        StopAutoLyric(false);
+        PauseAutoLyric();
         LyricTitle = "";
         LyricInput = "";
         TranslatedLyricInput = "";
@@ -994,9 +996,7 @@ public partial class LiveRoomTabViewModel : ViewModelBase, IDisposable
     {
         if (IsLyricAutoSending)
         {
-            Interlocked.Increment(ref lyricPlaybackIntentRevision);
-            lyricTokenSource?.Cancel();
-            IsLyricAutoSending = false;
+            PauseAutoLyric();
             return;
         }
 
@@ -1031,24 +1031,22 @@ public partial class LiveRoomTabViewModel : ViewModelBase, IDisposable
     }
 
     /// <summary>
-    /// 停止歌词自动发送。
+    /// 停止歌词自动发送，回到首行。
     /// </summary>
     [RelayCommand]
     public void StopAutoLyric()
     {
-        StopAutoLyric(true);
+        PauseAutoLyric();
+        lastAutoEnteredLyricIndex = -1;
+        SetLyricPlaybackPosition(GetFirstTimedLyricPosition(), 0);
+        LyricPlaybackStopped?.Invoke(this, EventArgs.Empty);
     }
 
-    private void StopAutoLyric(bool resetPosition)
+    private void PauseAutoLyric()
     {
         Interlocked.Increment(ref lyricPlaybackIntentRevision);
         lyricTokenSource?.Cancel();
         IsLyricAutoSending = false;
-
-        if (resetPosition)
-        {
-            SetLyricPlaybackPosition(GetFirstTimedLyricPosition());
-        }
     }
 
     private void RefreshLyricDurations()

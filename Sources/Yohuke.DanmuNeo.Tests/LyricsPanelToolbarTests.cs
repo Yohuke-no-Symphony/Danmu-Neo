@@ -8,6 +8,7 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using CommunityToolkit.Mvvm.Input;
+using Lucide.Avalonia;
 using Yohuke.DanmuNeo.Views.Components;
 
 namespace Yohuke.DanmuNeo.Tests;
@@ -88,7 +89,7 @@ public class LyricsPanelToolbarTests
 
             var actionButtons = actions.Children.OfType<Button>().ToArray();
 
-            foreach (var button in actionButtons.Skip(1))
+            foreach (var button in actionButtons)
             {
                 Assert.Equal(button.Bounds.Width, button.Bounds.Height, 3);
                 Assert.Equal(actionButtons[0].Bounds.Top, button.Bounds.Top, 3);
@@ -164,21 +165,27 @@ public class LyricsPanelToolbarTests
             Assert.Equal(1, context.Room.LyricPlaybackRate, 3);
 
             var auto = view.FindControl<Button>("LyricAutoSendButton")!;
+            var icons = auto.GetVisualDescendants().OfType<LucideIcon>().ToArray();
+            Assert.Empty(auto.GetVisualDescendants().OfType<TextBlock>());
+            Assert.Equal(LucideIconKind.Play, Assert.Single(icons, icon => icon.IsEffectivelyVisible).Kind);
             Click(window, auto);
             playback = Assert.IsAssignableFrom<IAsyncRelayCommand>(auto.Command).ExecutionTask;
             Assert.True(context.Room.IsLyricAutoSending);
-            Assert.Equal("暂停发送", auto.GetVisualDescendants().OfType<TextBlock>()
-                .Single(text => text.IsVisible).Text);
+            Assert.Equal(LucideIconKind.Pause, Assert.Single(icons, icon => icon.IsEffectivelyVisible).Kind);
+            Assert.Equal("暂停歌词发送，保留当前位置", ToolTip.GetTip(auto));
             Click(window, auto);
             Assert.False(context.Room.IsLyricAutoSending);
+            Assert.Same(context.Room.Lyrics[1], context.Room.ActiveLyricLine);
+            var pausedPosition = context.Room.LyricPlaybackPositionSeconds;
+            Assert.True(pausedPosition >= 10);
 
             if (playback is not null)
             {
                 await playback;
             }
 
-            Assert.Equal("自动发送", auto.GetVisualDescendants().OfType<TextBlock>()
-                .Single(text => text.IsVisible).Text);
+            Assert.Equal(pausedPosition, context.Room.LyricPlaybackPositionSeconds);
+            Assert.Equal(LucideIconKind.Play, Assert.Single(icons, icon => icon.IsEffectivelyVisible).Kind);
             Click(window, view.FindControl<Button>("LyricStopButton")!);
             Assert.Equal(1, context.Room.LyricPlaybackPositionSeconds, 3);
 

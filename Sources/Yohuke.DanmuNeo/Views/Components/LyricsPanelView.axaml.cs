@@ -1,9 +1,11 @@
 using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using CommunityToolkit.Mvvm.Input;
 using Yohuke.DanmuNeo.Models.Workspace;
 using Yohuke.DanmuNeo.Services;
@@ -94,6 +96,13 @@ public partial class LyricsPanelView : WorkbenchRoomPanel
     }
 
     /// <inheritdoc/>
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        QueueActiveLyricScroll();
+    }
+
+    /// <inheritdoc/>
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         StopHeldActions();
@@ -109,11 +118,14 @@ public partial class LyricsPanelView : WorkbenchRoomPanel
         if (oldRoom is not null)
         {
             oldRoom.PropertyChanged -= Room_OnPropertyChanged;
+            oldRoom.LyricPlaybackStopped -= Room_OnLyricPlaybackStopped;
         }
 
         if (newRoom is not null)
         {
             newRoom.PropertyChanged += Room_OnPropertyChanged;
+            newRoom.LyricPlaybackStopped += Room_OnLyricPlaybackStopped;
+            QueueActiveLyricScroll();
         }
     }
 
@@ -140,19 +152,26 @@ public partial class LyricsPanelView : WorkbenchRoomPanel
             Context.CurrentRoom?.IsLyricAutoSending == true)
         {
             isLyricAutoFollowEnabled = true;
+            QueueActiveLyricScroll();
         }
-
-        if (isLyricAutoFollowEnabled && e.PropertyName is nameof(LiveRoomTabViewModel.ActiveLyricLine) or
-            nameof(LiveRoomTabViewModel.IsLyricAutoSending))
+        else if (e.PropertyName == nameof(LiveRoomTabViewModel.ActiveLyricLine))
         {
-            var selection = Context.CaptureSelection();
-            Dispatcher.UIThread.Post(() =>
-            {
-                if (Context.IsCurrent(selection))
-                {
-                    ScrollActiveLyricIntoView();
-                }
-            }, DispatcherPriority.Background);
+            QueueActiveLyricScroll();
+        }
+    }
+
+    private void Room_OnLyricPlaybackStopped(object? sender, EventArgs e)
+    {
+        isLyricAutoFollowEnabled = true;
+        LyricListBox.SetCurrentValue(ListBox.SelectedItemProperty, Context.CurrentRoom?.ActiveLyricLine);
+        (LyricListBox.Scroll as ScrollViewer)?.ScrollToHome();
+    }
+
+    private void LyricListBox_OnScrollChanged(object? sender, ScrollChangedEventArgs e)
+    {
+        if (Context?.CurrentRoom?.IsLyricAutoSending == true)
+        {
+            QueueActiveLyricScroll();
         }
     }
 
@@ -305,14 +324,60 @@ public partial class LyricsPanelView : WorkbenchRoomPanel
         Context.CurrentRoom?.AdjustLyricPlaybackPosition(lyricSeekRepeatOffsetSeconds);
     }
 
-    private void ScrollActiveLyricIntoView()
+    private void QueueActiveLyricScroll()
     {
-        if (!isLyricAutoFollowEnabled || Context.CurrentRoom?.ActiveLyricLine is null)
+        if (!isLyricAutoFollowEnabled || Context?.CaptureSelection() is not { } selection)
         {
             return;
         }
 
-        LyricListBox.ScrollIntoView(Context.CurrentRoom.ActiveLyricLine);
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (Context.IsCurrent(selection))
+            {
+                ScrollActiveLyricIntoView(selection.Room);
+            }
+        }, DispatcherPriority.Background);
     }
 
+    private void ScrollActiveLyricIntoView(LiveRoomTabViewModel room)
+    {
+        if (!isLyricAutoFollowEnabled || !LyricListBox.IsEffectivelyVisible ||
+            !LyricListBox.IsAttachedToVisualTree() || room.ActiveLyricLine is null)
+        {
+            return;
+        }
+
+        var index = room.ActiveLyricIndex;
+        if (!room.IsLyricAutoSending)
+        {
+            LyricListBox.ScrollIntoView(index);
+            return;
+        }
+
+        if (LyricListBox.Scroll is not ScrollViewer { Viewport.Height: > 0 } scroll)
+        {
+            return;
+        }
+
+        var row = LyricListBox.ContainerFromIndex(index);
+        if (row is null)
+        {
+            LyricListBox.ScrollIntoView(index);
+            row = LyricListBox.ContainerFromIndex(index);
+        }
+
+        if (row?.FindAncestorOfType<ScrollContentPresenter>() is not { } viewport ||
+            row.TranslatePoint(new(0, row.Bounds.Height / 2), viewport) is not { } center)
+        {
+            return;
+        }
+
+        var offset = scroll.Offset;
+        var targetY = Math.Clamp(offset.Y + center.Y - scroll.Viewport.Height / 2, 0, scroll.ScrollBarMaximum.Y);
+        if (Math.Abs(targetY - offset.Y) > 0.5)
+        {
+            scroll.SetCurrentValue(ScrollViewer.OffsetProperty, offset.WithY(targetY));
+        }
+    }
 }

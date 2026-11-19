@@ -32,7 +32,7 @@ public partial class LiveRoomTabViewModel
         lyricDeliveryProgress.Clear();
         Localization.LanguageChanged -= OnLanguageChanged;
         Deactivate();
-        StopAutoLyric(false);
+        PauseAutoLyric();
         StopListening();
         DisposeForwardRules();
         InvalidateDraftSendFeedback();

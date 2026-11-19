@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
@@ -295,7 +296,7 @@ public class LyricNavigationViewTests
     }
 
     /// <summary>
-    /// 播放时手动滚动暂停跟随后，两个下一句按钮和快捷键使目标行重新进入视野。
+    /// 播放时手动滚动暂停跟随后，两个下一句按钮和快捷键重新居中显示目标行。
     /// </summary>
     [AvaloniaTheory]
     [InlineData("shortcut")]
@@ -306,6 +307,9 @@ public class LyricNavigationViewTests
         using var context = new LyricNavigationViewTestContext();
         context.Room.LyricInput = string.Join('\n', Enumerable.Range(0, 80)
             .Select(index => $"[{index / 6:00}:{index % 6 * 10:00}]歌词 {index}"));
+        context.Room.TranslatedLyricInput = string.Join('\n', Enumerable.Range(0, 80)
+            .Where(index => index % 3 == 0)
+            .Select(index => $"[{index / 6:00}:{index % 6 * 10:00}]译文 {index}"));
         context.Room.ApplyLyric();
         var window = CreateWindow(context, true);
         Task? playback = null;
@@ -314,11 +318,14 @@ public class LyricNavigationViewTests
         {
             var view = await ShowLyricsAsync(window);
             var list = view.FindControl<ListBox>("LyricListBox")!;
+            var scroll = Assert.IsType<ScrollViewer>(list.Scroll);
             Assert.True(list.ContainerFromIndex(0)!.Focus());
             playback = context.Room.StartAutoLyricAsync();
             Press(window, PhysicalKey.PageDown, RawInputModifiers.None);
+            var manualOffset = scroll.Offset.Y;
             context.Room.SeekLyricLineStart(context.Room.Lyrics[60]);
             PumpLayout(window);
+            Assert.Equal(manualOffset, scroll.Offset.Y, 3);
 
             if (source == "shortcut")
             {
@@ -332,9 +339,9 @@ public class LyricNavigationViewTests
             PumpLayout(window);
             Assert.Same(context.Room.Lyrics[61], context.Room.ActiveLyricLine);
             var target = Assert.IsType<ListBoxItem>(list.ContainerFromIndex(61));
-            var position = target.TranslatePoint(new Point(0, 0), list)!.Value;
-            Assert.True(position.Y >= 0);
-            Assert.True(position.Y + target.Bounds.Height <= list.Bounds.Height);
+            var viewport = target.FindAncestorOfType<ScrollContentPresenter>()!;
+            var center = target.TranslatePoint(new Point(0, target.Bounds.Height / 2), viewport)!.Value.Y;
+            Assert.InRange(center - scroll.Viewport.Height / 2, -1, 1);
             Assert.True(context.Room.Lyrics[61].IsSent);
         }
         finally
