@@ -309,12 +309,6 @@ internal sealed class DanmuStylePreviewViewModel : ViewModelBase, IDisposable
         AddDanmuSample(new() { Time = firstDanmuSample, UserUid = "10001" }, "Preview.ShortUser", "Preview.ShortContent");
         AddDanmuSample(new()
         {
-            Time = firstDanmuSample.AddSeconds(4),
-            UserUid = "10005",
-            IsGift = true
-        }, "Preview.GiftUser", "Preview.GiftContent");
-        AddDanmuSample(new()
-        {
             Time = firstDanmuSample.AddSeconds(8),
             UserUid = "10002",
             MedalName = "肉肉",

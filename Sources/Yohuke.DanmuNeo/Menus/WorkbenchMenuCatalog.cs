@@ -114,6 +114,7 @@ internal sealed class WorkbenchMenuCatalog : IDisposable
             WorkbenchPanelIds.COMPOSER => LucideIconKind.SquarePen,
             WorkbenchPanelIds.SUPER_CHAT => LucideIconKind.BadgeDollarSign,
             WorkbenchPanelIds.DANMU => LucideIconKind.MessagesSquare,
+            WorkbenchPanelIds.GIFT => LucideIconKind.Gift,
             WorkbenchPanelIds.HISTORY => LucideIconKind.History,
             WorkbenchPanelIds.LYRICS => LucideIconKind.Music,
             WorkbenchPanelIds.FORWARDING => LucideIconKind.Forward,

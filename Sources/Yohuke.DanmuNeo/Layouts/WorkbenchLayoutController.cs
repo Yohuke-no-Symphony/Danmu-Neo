@@ -132,7 +132,7 @@ internal sealed class WorkbenchLayoutController : IAsyncDisposable
                 }
 
                 panel.OriginalOwner = null;
-                var destination = FindReopenDock();
+                var destination = FindReopenDock(panelId);
                 factory.AddDockable(destination, panel);
                 if (panelId == WorkbenchPanelIds.LIVE_CAPTURES)
                 {
@@ -707,8 +707,14 @@ internal sealed class WorkbenchLayoutController : IAsyncDisposable
             screen.WorkingArea.Y, screen.WorkingArea.Width, screen.WorkingArea.Height, screen.Scaling)).ToArray();
     }
 
-    private IToolDock FindReopenDock()
+    private IToolDock FindReopenDock(string panelId)
     {
+        if (panelId == WorkbenchPanelIds.GIFT && IsVisible(WorkbenchPanelIds.DANMU) &&
+            panels[WorkbenchPanelIds.DANMU].Owner is IToolDock danmuDock)
+        {
+            return danmuDock;
+        }
+
         var dock = WorkbenchDockSnapshotCodec.Enumerate(root).OfType<IToolDock>().FirstOrDefault();
 
         if (dock is not null)

@@ -38,7 +38,7 @@ public class DanmuStylePreviewViewModelTests
         var guardPurchases = viewModel.SuperChats.Where(item => item.Kind == LivePaidEventKind.GuardPurchase).ToArray();
         Assert.Equal(6, superChats.Length);
         Assert.Equal(3, guardPurchases.Length);
-        Assert.Equal(8, viewModel.DanmuItems.Count);
+        Assert.Equal(7, viewModel.DanmuItems.Count);
         Assert.Equal("300 电池", superChats[0].BadgeText);
         Assert.Equal(Color.Parse("#3171D2"), superChats[0].BorderColor);
         Assert.Equal("20000 电池", superChats[^1].BadgeText);

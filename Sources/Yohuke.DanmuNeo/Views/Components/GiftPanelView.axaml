@@ -1,0 +1,72 @@
+<components:WorkbenchRoomPanel xmlns="https://github.com/avaloniaui"
+                               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                               xmlns:workspace="clr-namespace:Yohuke.DanmuNeo.Models.Workspace"
+                               xmlns:components="clr-namespace:Yohuke.DanmuNeo.Views.Components"
+                               xmlns:items="clr-namespace:Yohuke.DanmuNeo.ViewModels.Items"
+                               x:Class="Yohuke.DanmuNeo.Views.Components.GiftPanelView"
+                               x:DataType="items:LiveRoomTabViewModel"
+                               x:CompileBindings="True"
+                               x:Name="Root">
+    <components:WorkbenchRoomPanel.HeaderActionsTemplate>
+        <DataTemplate x:DataType="components:GiftPanelView">
+            <Button Classes="dockChromeButton"
+                    Foreground="{DynamicResource AppMutedTextBrush}"
+                    ToolTip.Tip="{Loc Key=UI.GiftPanelView.ScrollToLatest}"
+                    AutomationProperties.Name="{Loc Key=UI.GiftPanelView.ScrollToLatest}"
+                    Command="{Binding ScrollToLatestCommand}">
+                <LucideIcon Kind="ArrowDownToLine" Width="16" Height="16" />
+            </Button>
+        </DataTemplate>
+    </components:WorkbenchRoomPanel.HeaderActionsTemplate>
+    <Border Padding="{StaticResource WorkbenchPanelPadding}">
+        <Grid Classes.compactDanmu="{Binding #Root.Context.Application.IsCompactDanmuDisplay}">
+            <ListBox x:Name="GiftListBox"
+                     Classes="feedList"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     ItemsSource="{Binding GiftItems}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="workspace:GiftFeedItem">
+                        <Button Classes="danmuFeedButton"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch"
+                                Padding="0" Margin="0"
+                                ContextRequested="Gift_OnContextRequested"
+                                Click="Gift_OnClick">
+                            <Border BorderThickness="2" CornerRadius="6" Padding="6,3">
+                                <Border.BorderBrush>
+                                    <SolidColorBrush Color="{Binding BorderColor}" />
+                                </Border.BorderBrush>
+                                <Grid ColumnDefinitions="Auto,2*,3*,Auto" ColumnSpacing="6">
+                                    <components:UserAvatarView UserUid="{Binding AvatarUid}"
+                                                               AvatarService="{Binding #Root.Context.Application.UserAvatars}"
+                                                               ShowAvatar="{Binding #Root.Context.Application.IsShowDanmuAvatars}" />
+                                    <Button Grid.Column="1"
+                                            Classes="feedUserNameButton"
+                                            VerticalAlignment="Center"
+                                            ToolTip.Tip="{Binding UserName}"
+                                            Click="FeedUserName_OnClick">
+                                        <TextBlock Text="{Binding UserName}"
+                                                   Classes="danmuFeedUser"
+                                                   MaxLines="1"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </Button>
+                                    <TextBlock Grid.Column="2"
+                                               Text="{Binding GiftText}"
+                                               Classes="danmuFeedContent"
+                                               MaxLines="1"
+                                               TextTrimming="CharacterEllipsis"
+                                               ToolTip.Tip="{Binding GiftText}" />
+                                    <TextBlock Grid.Column="3"
+                                               Text="{Binding ValueText}"
+                                               Classes="danmuFeedContent"
+                                               FontWeight="SemiBold"
+                                               HorizontalAlignment="Right" />
+                                </Grid>
+                            </Border>
+                        </Button>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Grid>
+    </Border>
+</components:WorkbenchRoomPanel>

@@ -30,6 +30,7 @@ internal sealed class WorkbenchDockPanel : Tool, IDeferredContentPresentation
             WorkbenchPanelIds.COMPOSER => "Workbench.Panel.Composer",
             WorkbenchPanelIds.SUPER_CHAT => "Workbench.Panel.SuperChat",
             WorkbenchPanelIds.DANMU => "Workbench.Panel.Danmu",
+            WorkbenchPanelIds.GIFT => "Workbench.Panel.Gift",
             WorkbenchPanelIds.HISTORY => "Workbench.Panel.History",
             WorkbenchPanelIds.LYRICS => "Workbench.Panel.Lyrics",
             WorkbenchPanelIds.FORWARDING => "Workbench.Panel.Forwarding",

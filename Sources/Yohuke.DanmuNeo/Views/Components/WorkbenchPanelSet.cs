@@ -24,6 +24,7 @@ public sealed partial class WorkbenchPanelSet : IDisposable
         Player = new(context, context.Application.FrameCaptureService);
         SuperChat = new(context, interactions);
         Danmu = new(context, interactions);
+        Gift = new(context, interactions);
         History = new(context);
         Lyrics = new(context);
         Forwarding = new(context);
@@ -37,6 +38,7 @@ public sealed partial class WorkbenchPanelSet : IDisposable
             [WorkbenchPanelIds.COMPOSER] = Composer,
             [WorkbenchPanelIds.SUPER_CHAT] = SuperChat,
             [WorkbenchPanelIds.DANMU] = Danmu,
+            [WorkbenchPanelIds.GIFT] = Gift,
             [WorkbenchPanelIds.HISTORY] = History,
             [WorkbenchPanelIds.LYRICS] = Lyrics,
             [WorkbenchPanelIds.FORWARDING] = Forwarding,
@@ -61,6 +63,9 @@ public sealed partial class WorkbenchPanelSet : IDisposable
 
     /// <summary>弹幕面板。</summary>
     public DanmuPanelView Danmu { get; }
+
+    /// <summary>礼物面板。</summary>
+    public GiftPanelView Gift { get; }
 
     /// <summary>历史面板。</summary>
     public TranslateHistoryPanelView History { get; }

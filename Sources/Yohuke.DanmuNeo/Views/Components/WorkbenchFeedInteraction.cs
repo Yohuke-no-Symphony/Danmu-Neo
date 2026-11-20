@@ -11,7 +11,7 @@ using Yohuke.DanmuNeo.Windowing;
 namespace Yohuke.DanmuNeo.Views.Components;
 
 /// <summary>
-/// 弹幕和 SC 共用的剪贴板、插入和上下文菜单行为。
+/// 弹幕、礼物和 SC 共用的剪贴板、插入和上下文菜单行为。
 /// </summary>
 internal sealed class WorkbenchFeedInteraction : IDisposable
 {
@@ -169,6 +169,7 @@ internal sealed class WorkbenchFeedInteraction : IDisposable
     {
         return item switch
         {
+            GiftFeedItem gift => room.GiftItems.Contains(gift),
             DanmuFeedItem danmu => room.DanmuItems.Contains(danmu),
             SuperChatItem superChat => room.SuperChats.Contains(superChat),
             _ => false

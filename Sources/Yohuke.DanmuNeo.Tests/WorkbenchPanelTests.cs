@@ -4,6 +4,7 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Yohuke.DanmuNeo.Layouts;
@@ -19,10 +20,11 @@ namespace Yohuke.DanmuNeo.Tests;
 public class WorkbenchPanelTests
 {
     /// <summary>
-    /// 五个业务面板在窄、宽尺寸下只保留一层统一内容边距。
+    /// 消息列表及业务面板在窄、宽尺寸下只保留一层统一内容边距。
     /// </summary>
     [AvaloniaTheory]
     [InlineData(WorkbenchPanelIds.DANMU)]
+    [InlineData(WorkbenchPanelIds.GIFT)]
     [InlineData(WorkbenchPanelIds.SUPER_CHAT)]
     [InlineData(WorkbenchPanelIds.HISTORY)]
     [InlineData(WorkbenchPanelIds.LYRICS)]
@@ -90,6 +92,74 @@ public class WorkbenchPanelTests
         workspace.SelectedRoom = fixture.Room;
         Assert.Same(fixture.Room, context.CurrentRoom);
         Assert.All(panels.Panels.Values.OfType<WorkbenchRoomPanel>(), panel => Assert.Same(fixture.Room, panel.DataContext));
+    }
+
+    /// <summary>礼物列表按房间显示四列，连击更新原行的金额与边框。</summary>
+    [AvaloniaFact]
+    public void GiftPanelShowsOnlyTheSelectedRoomsGifts()
+    {
+        using var fixture = new LiveRoomFeedViewTestContext();
+        using var context = new WorkbenchContext(fixture.ViewModel);
+        using var panels = new WorkbenchPanelSet(context);
+        fixture.Room.AddGift(new()
+        {
+            RoomId = "100", Uid = 42, UserName = "赠送者", GiftName = "小电视", Quantity = 2, UnitPrice = 3000,
+            BatchComboId = "combo"
+        });
+        var panel = panels.Gift;
+        var list = panel.FindControl<ListBox>("GiftListBox")!;
+        var window = new Window { Width = 320, Height = 500, Content = panel };
+
+        try
+        {
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            window.UpdateLayout();
+            var item = Assert.Single(fixture.Room.GiftItems);
+            Assert.Same(item, Assert.Single(list.Items));
+            var button = FindMessageButton(panel);
+            var frame = Assert.IsType<Border>(button.Content);
+            var avatar = Assert.Single(frame.GetVisualDescendants().OfType<UserAvatarView>());
+            var textBlocks = button.GetVisualDescendants().OfType<TextBlock>().ToArray();
+            var name = Assert.Single(textBlocks, text => text.Text == "赠送者");
+            var gift = Assert.Single(textBlocks, text => text.Text == item.GiftText);
+            var value = Assert.Single(textBlocks, text => text.Text == "￥6");
+            Assert.Equal(new Thickness(2), frame.BorderThickness);
+            Assert.Equal(Color.Parse("#65B87A"), Assert.IsAssignableFrom<ISolidColorBrush>(frame.BorderBrush).Color);
+            var columns = new Control[] { avatar, name, gift, value };
+            Assert.All(columns, column => Assert.True(column.IsEffectivelyVisible && column.Bounds.Width > 0));
+            var positions = columns.Select(column =>
+                column.TranslatePoint(new Point(0, column.Bounds.Height / 2), frame)!.Value).ToArray();
+            Assert.All(positions, position => Assert.InRange(position.Y, positions[0].Y - 2, positions[0].Y + 2));
+            Assert.True(positions[0].X < positions[1].X && positions[1].X < positions[2].X && positions[2].X < positions[3].X);
+
+            fixture.Room.AddGift(new()
+            {
+                RoomId = "100", Uid = 42, UserName = "赠送者", GiftName = "小电视", Quantity = 2,
+                BatchComboId = "combo", BatchComboCount = 4
+            });
+            Dispatcher.UIThread.RunJobs();
+            Assert.Same(item, Assert.Single(list.Items));
+            Assert.Contains("小电视 × 4", gift.Text);
+            Assert.Equal("￥12", value.Text);
+            Assert.Equal(Color.Parse("#39B5C8"), Assert.IsAssignableFrom<ISolidColorBrush>(frame.BorderBrush).Color);
+
+            button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Assert.Contains("小电视", fixture.Room.InputDraft);
+
+            var workspace = fixture.ViewModel.SelectedWorkspace!;
+            workspace.AddRoom("200", "第二直播间");
+            Dispatcher.UIThread.RunJobs();
+            Assert.Empty(list.Items);
+
+            workspace.SelectedRoom = fixture.Room;
+            Dispatcher.UIThread.RunJobs();
+            Assert.Same(item, Assert.Single(list.Items));
+        }
+        finally
+        {
+            window.Close();
+        }
     }
 
     /// <summary>

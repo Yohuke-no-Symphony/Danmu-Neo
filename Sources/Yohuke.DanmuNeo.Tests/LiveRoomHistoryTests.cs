@@ -155,7 +155,8 @@ public class LiveRoomHistoryTests
         Dispatcher.UIThread.RunJobs();
         Assert.Equal(5, archive.Entries.Count);
         Assert.Contains(archive.Entries, entry => entry.Content == "[dog]");
-        Assert.Single(room.DanmuItems);
+        Assert.Empty(room.DanmuItems);
+        Assert.Contains("× 3", Assert.Single(room.GiftItems).Content);
         socket.EmitRecovered();
         Assert.Single(archive.Sessions);
         settings.ArchiveReceivedDanmu = false;

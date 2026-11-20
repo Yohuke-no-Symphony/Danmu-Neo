@@ -33,7 +33,7 @@ public sealed class WorkbenchInteractionCoordinator
     }
 
     /// <summary>
-    /// 将指定房间的弹幕或 SC 内容插入当前草稿。
+    /// 将指定房间中的消息内容插入当前草稿。
     /// </summary>
     public void InsertFeedContent(LiveRoomTabViewModel room, WorkbenchSelection selection, string content)
     {

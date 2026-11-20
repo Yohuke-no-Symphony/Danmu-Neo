@@ -238,6 +238,34 @@ public class WorkbenchMenuTests
         Assert.Equal($"layout:{context.Controller.CurrentPresetId}", Assert.Single(layouts, item => item.IsChecked).Id);
     }
 
+    /// <summary>在隐藏礼物的预设中，视图菜单会将礼物作为弹幕旁的独立标签打开。</summary>
+    [AvaloniaFact]
+    public async Task GiftMenuOpensHiddenPanelInDanmuDock()
+    {
+        await using var context = new WorkbenchLayoutTestContext(new()
+        {
+            CurrentPresetId = WorkspaceLayoutPresets.TRANSLATION,
+            CurrentLayout = WorkspaceLayoutPresets.Create(WorkspaceLayoutPresets.TRANSLATION)
+        });
+        using var catalog = new WorkbenchMenuCatalog(context.Controller, () => { }, () => { }, () => { },
+            () => { }, () => { }, () => false);
+        context.Show();
+        var id = WorkbenchPanelIds.GIFT;
+        var entry = catalog.Entries.Single(group => group.Id == "views").Children!
+            .Single(item => item.Id == $"panel:{id}");
+        Assert.Equal(Localization.Get("Workbench.Panel.Gift"), entry.Header);
+        Assert.Equal(LucideIconKind.Gift, entry.Icon);
+        Assert.False(context.Controller.IsVisible(id));
+
+        entry.Command!.Execute(null);
+        context.Pump();
+
+        var gift = context.Controller.PanelAdapters[id];
+        var danmuDock = Assert.IsAssignableFrom<IDock>(context.Controller.PanelAdapters[WorkbenchPanelIds.DANMU].Owner);
+        Assert.Same(danmuDock, gift.Owner);
+        Assert.Same(gift, danmuDock.ActiveDockable);
+    }
+
     /// <summary>直播记录使用独立图标和本地化标题，菜单可恢复隐藏面板并复用同一实例。</summary>
     [AvaloniaFact]
     public async Task LiveMarkerMenuRestoresExistingPanelWithBookmarkIcon()

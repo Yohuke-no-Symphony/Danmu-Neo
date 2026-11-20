@@ -1,5 +1,6 @@
 using Yohuke.DanmuCore.Services;
 using Yohuke.DanmuCore.Apis;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using Avalonia.Media;
 using Yohuke.DanmuNeo.Models.Workspace;
@@ -15,7 +16,8 @@ namespace Yohuke.DanmuNeo.ViewModels.Items;
 public partial class LiveRoomTabViewModel
 {
     private const int MAX_RECENT_SUPER_CHAT_IDENTITIES = 512;
-    private const int MAX_RECENT_GIFT_COMBOS = 300;
+    private const int MAX_DANMU_ITEMS = 300;
+    private const int MAX_GIFT_ITEMS = 300;
     private const string DEFAULT_SUPER_CHAT_COLOR = "#2A60B2";
     private CancellationTokenSource? listenTokenSource;
     private ILiveDanmuSocket? activeListenSocket;
@@ -23,9 +25,8 @@ public partial class LiveRoomTabViewModel
     private readonly Queue<string> recentSuperChatIdentityOrder = new();
     private readonly HashSet<string> recentGuardPurchaseIdentities = new(StringComparer.Ordinal);
     private readonly Queue<string> recentGuardPurchaseIdentityOrder = new();
-    private readonly Dictionary<string, (DanmuFeedItem Item, int Count, decimal UnitPrice, LinkedListNode<string> OrderNode)> giftComboItems = new(StringComparer.Ordinal);
-    private readonly Dictionary<DanmuFeedItem, string> giftComboKeysByItem = new();
-    private readonly LinkedList<string> giftComboOrder = new();
+    private readonly ObservableCollection<GiftFeedItem> giftItems = [];
+    private readonly Dictionary<string, GiftFeedItem> giftComboItems = new(StringComparer.Ordinal);
     private string? listenerLogSource;
 
     private readonly DanmuHistoryReconciler historyReconciler = new();
@@ -484,17 +485,12 @@ public partial class LiveRoomTabViewModel
                 ArchiveReceived(context, new("礼物", message.Uid.ToString(CultureInfo.InvariantCulture), message.UserName,
                     string.Create(CultureInfo.InvariantCulture, $"{message.GiftName} ×{message.Quantity} (单价 {message.UnitPrice / 1000m:0.###} 元)"),
                     receivedAt, message.Timestamp));
-                AddGiftToFeed(message);
+                AddGift(message);
             }
         });
     }
 
     internal void AddGift(BilibiliGiftMessage message)
-    {
-        AddGiftToFeed(message);
-    }
-
-    private void AddGiftToFeed(BilibiliGiftMessage message)
     {
         if (message.Uid <= 0 || string.IsNullOrWhiteSpace(message.UserName) ||
             string.IsNullOrWhiteSpace(message.GiftName) || message.Quantity <= 0)
@@ -504,26 +500,15 @@ public partial class LiveRoomTabViewModel
 
         var comboIdentity = CreateGiftComboIdentity(message);
 
-        if (!string.IsNullOrWhiteSpace(comboIdentity) && giftComboItems.TryGetValue(comboIdentity, out var combo))
+        if (giftComboItems.TryGetValue(comboIdentity, out var combo))
         {
-            if (DanmuItems.Contains(combo.Item))
-            {
-                var count = message.BatchComboCount > 0
-                    ? Math.Max(combo.Count, message.BatchComboCount)
-                    : (int)Math.Min(int.MaxValue, (long)combo.Count + message.Quantity);
-                var unitPrice = message.UnitPrice > 0 ? message.UnitPrice : combo.UnitPrice;
-                SetGiftContent(combo.Item, message.GiftName, count, unitPrice);
-                giftComboItems[comboIdentity] = (combo.Item, count, unitPrice, combo.OrderNode);
-                return;
-            }
-
-            RemoveGiftCombo(combo.Item);
+            combo.UpdateCombo(message.GiftName, message.Quantity, message.BatchComboCount, message.UnitPrice);
+            return;
         }
 
         var initialCount = Math.Max(message.Quantity, message.BatchComboCount);
-        var item = new DanmuFeedItem
+        var item = new GiftFeedItem(message.GiftName, initialCount, message.UnitPrice, comboIdentity)
         {
-            IsGift = true,
             RoomId = message.RoomId,
             Time = message.Timestamp > 0
                 ? DateTimeOffset.FromUnixTimeSeconds(message.Timestamp)
@@ -531,14 +516,21 @@ public partial class LiveRoomTabViewModel
             UserName = message.UserName,
             UserUid = message.Uid.ToString(CultureInfo.InvariantCulture)
         };
-        SetGiftContent(item, message.GiftName, initialCount, message.UnitPrice);
 
-        DanmuItems.Add(item);
-        TrimDanmuItems();
-
-        if (!string.IsNullOrWhiteSpace(comboIdentity))
+        giftItems.Add(item);
+        if (giftItems.Count > MAX_GIFT_ITEMS)
         {
-            AddGiftCombo(comboIdentity, item, initialCount, message.UnitPrice);
+            var oldest = giftItems[0];
+            giftItems.RemoveAt(0);
+            if (giftComboItems.TryGetValue(oldest.ComboIdentity, out var tracked) && ReferenceEquals(oldest, tracked))
+            {
+                giftComboItems.Remove(oldest.ComboIdentity);
+            }
+        }
+
+        if (comboIdentity.Length > 0)
+        {
+            giftComboItems.Add(comboIdentity, item);
         }
     }
 
@@ -558,63 +550,14 @@ public partial class LiveRoomTabViewModel
             message.BatchComboId);
     }
 
-    private static void SetGiftContent(DanmuFeedItem item, string giftName, int count, decimal unitPrice)
-    {
-        var price = "";
-        var totalPrice = unitPrice * count / 1000m;
-
-        if (totalPrice > 0)
-        {
-            price = $" · ￥{totalPrice.ToString("0.##", CultureInfo.InvariantCulture)}";
-        }
-
-        item.SetLocalizedContent("Room.GiftContent", giftName, count, price);
-    }
-
-    private void AddGiftCombo(string identity, DanmuFeedItem item, int count, decimal unitPrice)
-    {
-        while (giftComboItems.Count >= MAX_RECENT_GIFT_COMBOS && giftComboOrder.First is { } oldest)
-        {
-            if (giftComboItems.TryGetValue(oldest.Value, out var oldestCombo))
-            {
-                RemoveGiftCombo(oldestCombo.Item);
-            }
-            else
-            {
-                giftComboOrder.RemoveFirst();
-            }
-        }
-
-        var orderNode = giftComboOrder.AddLast(identity);
-        giftComboItems[identity] = (item, count, unitPrice, orderNode);
-        giftComboKeysByItem[item] = identity;
-    }
-
-    private void RemoveGiftCombo(DanmuFeedItem item)
-    {
-        if (!giftComboKeysByItem.Remove(item, out var identity) || !giftComboItems.Remove(identity, out var combo))
-        {
-            return;
-        }
-
-        giftComboOrder.Remove(combo.OrderNode);
-    }
-
     private void ClearGiftComboState()
     {
         giftComboItems.Clear();
-        giftComboKeysByItem.Clear();
-        giftComboOrder.Clear();
     }
 
     private void TrimDanmuItems()
     {
-        while (DanmuItems.Count > 300)
-        {
-            var removedItem = DanmuItems[0];
-            DanmuItems.RemoveAt(0);
-            RemoveGiftCombo(removedItem);
-        }
+        Trim(DanmuItems, MAX_DANMU_ITEMS, oldestFirst: true);
     }
 
     private void OnSuperChatReceived(object? sender, BilibiliSuperChatMessage message)

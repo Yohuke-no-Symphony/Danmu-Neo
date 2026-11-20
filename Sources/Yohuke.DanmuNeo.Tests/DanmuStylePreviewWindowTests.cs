@@ -142,8 +142,9 @@ public class DanmuStylePreviewWindowTests
                 .Single(control => control.Content is "批量添加 80 条");
             batch.BringIntoView();
             PumpLayout(window);
+            var countBeforeBatch = viewModel.DanmuItems.Count;
             Click(window, batch);
-            Assert.Equal(88, viewModel.DanmuItems.Count);
+            Assert.Equal(countBeforeBatch + 80, viewModel.DanmuItems.Count);
             PumpLayout(window);
             var scroll = window.FindControl<ScrollViewer>("DanmuScrollViewer")!;
             Assert.Equal(scroll.ScrollBarMaximum.Y, scroll.Offset.Y, 0.5);

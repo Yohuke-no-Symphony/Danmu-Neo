@@ -25,7 +25,7 @@ public partial class LiveRoomTabViewModel
             option.RefreshLocalization();
         }
 
-        foreach (var item in DanmuItems.Concat(TranslateHistoryItems).Distinct())
+        foreach (var item in DanmuItems.Concat(GiftItems).Concat(TranslateHistoryItems).Distinct())
         {
             item.RefreshLocalization();
         }

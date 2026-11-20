@@ -25,9 +25,6 @@ public class DanmuFeedItem : ObservableObject
     /// <summary>是否来自服务器近期历史补拉。</summary>
     public bool IsHistory { get; set; }
 
-    /// <summary>是否为收到的礼物记录。</summary>
-    public bool IsGift { get; set; }
-
     /// <summary>是否为红包摘要。</summary>
     public virtual bool IsRedPocket => false;
 
@@ -77,7 +74,7 @@ public class DanmuFeedItem : ObservableObject
     public bool HasMedal => !string.IsNullOrWhiteSpace(MedalName) && MedalLevel > 0;
 
     /// <summary>是否为需要显示无粉丝牌占位的普通接收弹幕。</summary>
-    public bool ShowNoMedalPlaceholder => !HasMedal && !IsGift && !IsRedPocket && !IsLocalRecord;
+    public bool ShowNoMedalPlaceholder => !HasMedal && !IsRedPocket && !IsLocalRecord;
 
     /// <summary>
     /// 粉丝牌名称与等级。

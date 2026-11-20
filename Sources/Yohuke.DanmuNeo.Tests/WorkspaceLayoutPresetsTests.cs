@@ -48,7 +48,7 @@ public class WorkspaceLayoutPresetsTests
         Assert.Equal([WorkbenchPanelIds.SUPER_CHAT], right.Children[0].PanelIds);
         Assert.Equal(new[]
         {
-            WorkbenchPanelIds.DANMU, WorkbenchPanelIds.HISTORY, WorkbenchPanelIds.LIVE_MARKER,
+            WorkbenchPanelIds.DANMU, WorkbenchPanelIds.GIFT, WorkbenchPanelIds.HISTORY, WorkbenchPanelIds.LIVE_MARKER,
             WorkbenchPanelIds.LYRICS, WorkbenchPanelIds.FORWARDING, WorkbenchPanelIds.LOG, WorkbenchPanelIds.MODERATION, WorkbenchPanelIds.ACCOUNT_MEDALS
         }, right.Children[1].PanelIds);
         Assert.Equal(WorkbenchPanelIds.DANMU, right.Children[1].ActivePanelId);
@@ -71,7 +71,8 @@ public class WorkspaceLayoutPresetsTests
         }, right.Children.Select(child => child.PanelIds[0]));
         Assert.Equal([WorkbenchPanelIds.HISTORY, WorkbenchPanelIds.LIVE_MARKER, WorkbenchPanelIds.LOG,
             WorkbenchPanelIds.MODERATION, WorkbenchPanelIds.ACCOUNT_MEDALS], right.Children[2].PanelIds);
-        Assert.Equal(new[] { WorkbenchPanelIds.LYRICS, WorkbenchPanelIds.FORWARDING, WorkbenchPanelIds.LIVE_CAPTURES }, layout.HiddenPanelIds);
+        Assert.Equal(new[] { WorkbenchPanelIds.LYRICS, WorkbenchPanelIds.FORWARDING, WorkbenchPanelIds.LIVE_CAPTURES,
+            WorkbenchPanelIds.GIFT }, layout.HiddenPanelIds);
     }
 
     /// <summary>
@@ -94,7 +95,7 @@ public class WorkspaceLayoutPresetsTests
             WorkbenchPanelIds.MODERATION, WorkbenchPanelIds.ACCOUNT_MEDALS
         }, right.Children[1].PanelIds);
         Assert.Equal(WorkbenchPanelIds.DANMU, right.Children[1].ActivePanelId);
-        Assert.Equal([WorkbenchPanelIds.LIVE_CAPTURES], layout.HiddenPanelIds);
+        Assert.Equal([WorkbenchPanelIds.LIVE_CAPTURES, WorkbenchPanelIds.GIFT], layout.HiddenPanelIds);
     }
 
     /// <summary>
@@ -133,7 +134,7 @@ public class WorkspaceLayoutPresetsTests
         Assert.Throws<ArgumentException>(() => WorkspaceLayoutPresets.Create("missing"));
     }
 
-    /// <summary>全部新内置布局恰好包含十三个面板，直播记录位于历史后的同一标签组。</summary>
+    /// <summary>内置布局涵盖全部面板，直播记录位于历史后的同一标签组。</summary>
     [Theory]
     [InlineData(WorkspaceLayoutPresets.DEFAULT)]
     [InlineData(WorkspaceLayoutPresets.TRANSLATION)]
@@ -148,8 +149,6 @@ public class WorkspaceLayoutPresetsTests
         Assert.Equal(WorkbenchPanelIds.LIVE_MARKER, historyGroup.PanelIds[historyIndex + 1]);
         Assert.DoesNotContain(WorkbenchPanelIds.LIVE_MARKER, layout.HiddenPanelIds);
         var panels = nodes.SelectMany(node => node.PanelIds).Concat(layout.HiddenPanelIds).ToArray();
-        Assert.Equal(13, panels.Length);
-        Assert.Equal(13, panels.Distinct(StringComparer.Ordinal).Count());
         Assert.Equal(WorkbenchPanelIds.All.Order(), panels.Order());
     }
 

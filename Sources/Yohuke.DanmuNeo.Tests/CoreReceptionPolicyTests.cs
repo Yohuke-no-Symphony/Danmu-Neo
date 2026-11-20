@@ -29,9 +29,46 @@ public sealed class CoreReceptionPolicyTests
         });
         Dispatcher.UIThread.RunJobs();
 
-        var gift = Assert.Single(context.Room.DanmuItems, item => item.IsGift);
+        Assert.Same(context.Item, Assert.Single(context.Room.DanmuItems));
+        var gift = Assert.Single(context.Room.GiftItems);
         Assert.Contains("金币礼物", gift.Content);
         Assert.DoesNotContain("非金币礼物", gift.Content);
+    }
+
+    /// <summary>礼物容量独立于弹幕，超过上限后不再更新已移除的连击条目。</summary>
+    [Fact]
+    public void GiftFeedExpiresOldestRowsAndTheirComboState()
+    {
+        using var context = new RoomModerationTestContext();
+        var combo = new BilibiliGiftMessage
+        {
+            RoomId = "100", Uid = 42, UserName = "用户", GiftName = "连击礼物", Quantity = 1, BatchComboId = "combo"
+        };
+        context.Room.AddGift(combo);
+        var oldest = Assert.Single(context.Room.GiftItems);
+
+        for (var index = 0; index < 301; index++)
+        {
+            context.Room.AddDanmu(new() { RoomId = "100", Uid = 42, UserName = "用户", Content = $"弹幕 {index}" });
+        }
+
+        Assert.Same(oldest, Assert.Single(context.Room.GiftItems));
+        var gift = new BilibiliGiftMessage
+        {
+            RoomId = "100", Uid = 43, UserName = "另一个用户", GiftName = "普通礼物", Quantity = 1
+        };
+        for (var index = 0; index < 300; index++)
+        {
+            context.Room.AddGift(gift);
+        }
+
+        context.Room.AddGift(combo);
+
+        Assert.Equal(300, context.Room.GiftItems.Count);
+        Assert.DoesNotContain(oldest, context.Room.GiftItems);
+        Assert.Contains("连击礼物 × 1", context.Room.GiftItems[^1].Content);
+        Assert.Equal("弹幕 1", context.Room.DanmuItems[0].Content);
+        Assert.Equal("弹幕 300", context.Room.DanmuItems[^1].Content);
     }
 
     /// <summary>SC 使用协议有效颜色，缺失颜色由 Neo 自己回退。</summary>

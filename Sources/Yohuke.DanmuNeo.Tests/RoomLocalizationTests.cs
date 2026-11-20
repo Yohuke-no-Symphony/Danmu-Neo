@@ -48,7 +48,7 @@ public sealed class RoomLocalizationTests
             UnitPrice = 1000,
             RoomId = "100"
         });
-        var gift = Assert.Single(room.DanmuItems);
+        var gift = Assert.Single(room.GiftItems);
         var originalConnectionStatus = room.ConnectionStatus;
         var originalRuleStatus = rule.StatusText;
         var originalUidStatus = rule.SenderUserNameDisplayText;
