@@ -697,6 +697,7 @@
     "UI.BrowserCookieLoginWindow.StopFailed": "Failed to stop the browser: {0}",
     "UI.BrowserCookieLoginWindow.Title": "Browser sign-in",
     "UI.ConfirmDeleteDialogView.Cancel": "Cancel",
+    "UI.DanmuPanelView.ResizeColumns": "Drag to resize the user and message columns. Use the arrow keys to adjust.",
     "UI.DanmuPanelView.ScrollToTop": "Back to top",
     "UI.DanmuStylePreviewWindow.AddBatch": "Add 80 items",
     "UI.DanmuStylePreviewWindow.AddDanmu": "Add regular danmu",

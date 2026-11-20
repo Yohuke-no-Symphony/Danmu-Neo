@@ -697,6 +697,7 @@
     "UI.BrowserCookieLoginWindow.StopFailed": "浏览器停止失败：{0}",
     "UI.BrowserCookieLoginWindow.Title": "浏览器登录",
     "UI.ConfirmDeleteDialogView.Cancel": "取消",
+    "UI.DanmuPanelView.ResizeColumns": "拖动调整用户信息和正文列宽，方向键可微调",
     "UI.DanmuPanelView.ScrollToTop": "回到顶部",
     "UI.DanmuStylePreviewWindow.AddBatch": "批量添加 80 条",
     "UI.DanmuStylePreviewWindow.AddDanmu": "添加普通弹幕",

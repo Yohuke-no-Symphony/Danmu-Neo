@@ -470,6 +470,8 @@ public class AppStateService
             ClampWorkspaceColumnWidth(state.Settings.WorkspaceLiveColumnWidth);
         state.Settings.WorkspaceToolColumnWidth =
             ClampWorkspaceColumnWidth(state.Settings.WorkspaceToolColumnWidth);
+        state.Settings.DanmuColumns ??= new();
+        state.Settings.DanmuColumns.Normalize();
         MarkSymbolService.Normalize(state.Settings);
         ShieldReplacementService.Normalize(state.Settings);
         ShortcutBindingService.Normalize(state.Settings);

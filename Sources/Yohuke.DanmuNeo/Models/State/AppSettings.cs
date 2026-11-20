@@ -115,6 +115,9 @@ public class AppSettings
     /// </summary>
     public bool CompactDanmuDisplay { get; set; }
 
+    /// <summary>弹幕的用户名与正文分栏宽度。</summary>
+    public DanmuColumnWidths DanmuColumns { get; set; } = new();
+
     /// <summary>
     /// 紧凑模式下是否允许普通弹幕自动换行。
     /// </summary>

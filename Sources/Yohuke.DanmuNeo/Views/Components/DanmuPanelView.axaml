@@ -25,10 +25,12 @@
               Classes.compactDanmuWrap="{Binding #Root.Context.Application.IsCompactDanmuWrap}"
               Classes.compactSuperChatWrap="{Binding #Root.Context.Application.IsCompactSuperChatWrap}">
             <ScrollViewer x:Name="DanmuScrollViewer"
-                          Margin="0">
-                <ItemsControl x:Name="DanmuItemsControl"
-                              Classes="scrollSafeContent danmuFeedList"
-                              ItemsSource="{Binding DanmuItems}">
+                          Margin="0" HorizontalScrollBarVisibility="Disabled">
+                <components:DanmuFeedList x:Name="DanmuItemsControl"
+                                          Classes="scrollSafeContent danmuFeedList"
+                                          ItemsSource="{Binding DanmuItems}"
+                                          IsCompactDisplay="{Binding #Root.Context.Application.IsCompactDanmuDisplay}"
+                                          IdentityColumnRatio="{Binding #Root.Context.Application.DanmuIdentityColumnRatio}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="workspace:DanmuFeedItem">
                             <Button Classes="danmuFeedButton"
@@ -37,18 +39,19 @@
                                     ContextRequested="Danmu_OnContextRequested"
                                     Click="Danmu_OnClick">
                                 <Grid Classes="danmuFeedLayout"
+                                      ClipToBounds="True"
                                       RowDefinitions="Auto">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="2*" MinWidth="160" />
-                                        <ColumnDefinition Width="3*" />
+                                        <ColumnDefinition Width="{Binding #DanmuItemsControl.IdentityColumnWidth}" MinWidth="140" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="{Binding #DanmuItemsControl.BodyColumnWidth}" MinWidth="64" />
                                     </Grid.ColumnDefinitions>
                                     <Grid Classes="danmuFeedIdentity"
-                                          Classes.historyDanmu="{Binding IsHistory}"
                                           ColumnDefinitions="Auto,Auto,*"
                                           ClipToBounds="True"
                                           VerticalAlignment="Center">
                                         <Grid.Styles>
-                                            <Style Selector="Grid.compactDanmu Grid.danmuFeedIdentity:not(.historyDanmu) Button.feedUserNameButton">
+                                            <Style Selector="Grid.compactDanmu Grid.danmuFeedIdentity Button.feedUserNameButton">
                                                 <Setter Property="Grid.ColumnSpan" Value="2" />
                                             </Style>
                                         </Grid.Styles>
@@ -87,42 +90,44 @@
                                                            Classes="danmuFeedUser"
                                                            TextTrimming="CharacterEllipsis" />
                                             </Button>
-                                            <Grid Grid.Column="1"
-                                                  ColumnDefinitions="*,Auto"
-                                                  ClipToBounds="True"
-                                                  VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding DetailLine}"
-                                                           Classes="danmuFeedMeta"
-                                                           Margin="6,0,0,0"
-                                                           TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Grid.Column="1"
-                                                           Text="{Loc Key=Room.History.Badge}"
-                                                           IsVisible="{Binding IsHistory}"
-                                                           Classes="muted"
-                                                           Margin="6,0,0,0" />
-                                            </Grid>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding DetailLine}"
+                                                       Classes="danmuFeedMeta"
+                                                       Margin="6,0,0,0"
+                                                       VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis" />
                                         </Grid>
                                     </Grid>
-                                    <components:EmoticonTextBlock Grid.Column="1"
-                                                                  ContentText="{Binding Content}"
-                                                                  Emoticons="{Binding Emoticons}"
-                                                                  Reply="{Binding Reply}"
-                                                                  AvatarService="{Binding #Root.Context.Application.UserAvatars}"
-                                                                  ShowReplyAvatar="{Binding #Root.Context.Application.IsShowDanmuAvatars}"
-                                                                  Classes="danmuFeedContent regularFeedContent"
-                                                                  TextWrapping="Wrap" />
-                                    <components:HoverMarqueeTextBlock Grid.Column="1"
-                                                                      Text="{Binding Content}"
+                                    <Thumb Grid.Column="1" Classes="danmuColumnDivider"
+                                           AutomationProperties.Name="{Loc Key=UI.DanmuPanelView.ResizeColumns}"
+                                           ToolTip.Tip="{Loc Key=UI.DanmuPanelView.ResizeColumns}" />
+                                    <Grid Grid.Column="2" ColumnDefinitions="Auto,*">
+                                        <TextBlock Text="{Loc Key=Room.History.Badge}"
+                                                   IsVisible="{Binding IsHistory}"
+                                                   Classes="muted"
+                                                   Margin="0,0,6,0"
+                                                   VerticalAlignment="Center" />
+                                        <components:EmoticonTextBlock Grid.Column="1"
+                                                                      ContentText="{Binding Content}"
                                                                       Emoticons="{Binding Emoticons}"
                                                                       Reply="{Binding Reply}"
                                                                       AvatarService="{Binding #Root.Context.Application.UserAvatars}"
                                                                       ShowReplyAvatar="{Binding #Root.Context.Application.IsShowDanmuAvatars}"
-                                                                      Classes="compactFeedContent" />
+                                                                      Classes="danmuFeedContent regularFeedContent"
+                                                                      TextWrapping="Wrap" />
+                                        <components:HoverMarqueeTextBlock Grid.Column="1"
+                                                                          Text="{Binding Content}"
+                                                                          Emoticons="{Binding Emoticons}"
+                                                                          Reply="{Binding Reply}"
+                                                                          AvatarService="{Binding #Root.Context.Application.UserAvatars}"
+                                                                          ShowReplyAvatar="{Binding #Root.Context.Application.IsShowDanmuAvatars}"
+                                                                          Classes="compactFeedContent" />
+                                    </Grid>
                                 </Grid>
                             </Button>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                </components:DanmuFeedList>
             </ScrollViewer>
         </Grid>
     </Border>

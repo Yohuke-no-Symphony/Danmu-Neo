@@ -230,6 +230,21 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable, IAsyncDis
 
             Settings.CompactDanmuDisplay = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(DanmuIdentityColumnRatio));
+        }
+    }
+
+    /// <summary>当前弹幕显示密度下的用户名区比例。</summary>
+    public double DanmuIdentityColumnRatio
+    {
+        get => Settings.DanmuColumns.GetIdentityRatio(IsCompactDanmuDisplay);
+        set
+        {
+            if (Settings.DanmuColumns.SetIdentityRatio(IsCompactDanmuDisplay, value))
+            {
+                OnPropertyChanged();
+                _ = SaveSettingsAsync();
+            }
         }
     }
 

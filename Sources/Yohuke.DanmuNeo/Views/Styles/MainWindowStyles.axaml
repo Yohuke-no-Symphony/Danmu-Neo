@@ -978,9 +978,27 @@
         <Setter Property="RowSpacing" Value="5" />
     </Style>
 
-    <Style Selector="Grid.danmuFeedLayout">
-        <Setter Property="ColumnSpacing" Value="10" />
-        <Setter Property="RowSpacing" Value="1" />
+    <Style Selector="Thumb.danmuColumnDivider">
+        <Setter Property="Width" Value="10" />
+        <Setter Property="Cursor" Value="SizeWestEast" />
+        <Setter Property="Focusable" Value="True" />
+        <Setter Property="Background" Value="{DynamicResource AppSplitterBrush}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="Transparent">
+                    <Border Width="1" HorizontalAlignment="Center" Background="{TemplateBinding Background}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="Thumb.danmuColumnDivider:pointerover, Thumb.danmuColumnDivider:focus-visible,
+                     ItemsControl.danmuFeedList:resizingColumns Thumb.danmuColumnDivider">
+        <Setter Property="Background" Value="{DynamicResource AppPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="Grid.compactDanmu Thumb.danmuColumnDivider">
+        <Setter Property="Width" Value="6" />
     </Style>
 
     <Style Selector="Grid.compactDanmu Button.danmuFeedButton">
@@ -1002,11 +1020,6 @@
 
     <Style Selector="Grid.compactDanmu Grid.scFeedLayout">
         <Setter Property="RowSpacing" Value="2" />
-    </Style>
-
-    <Style Selector="Grid.compactDanmu Grid.danmuFeedLayout">
-        <Setter Property="ColumnSpacing" Value="6" />
-        <Setter Property="RowSpacing" Value="0" />
     </Style>
 
     <Style Selector="Grid.compactDanmu TextBlock.danmuFeedMeta">

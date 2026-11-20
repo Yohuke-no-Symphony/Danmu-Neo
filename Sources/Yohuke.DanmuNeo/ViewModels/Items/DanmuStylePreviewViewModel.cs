@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using Avalonia.Media;
 using Yohuke.DanmuNeo.I18n;
+using Yohuke.DanmuNeo.Models.State;
 using Yohuke.DanmuNeo.Models.Workspace;
 using Yohuke.DanmuNeo.Services;
 
@@ -12,6 +13,7 @@ internal sealed class DanmuStylePreviewViewModel : ViewModelBase, IDisposable
 
     private string userName = Localization.Get("Preview.DefaultUserName");
     private readonly List<Action> sampleLocalizers = [];
+    private readonly DanmuColumnWidths danmuColumns = new();
     private bool isUserNameEdited;
     private bool isContentEdited;
     private string content = Localization.Get("Preview.DefaultContent");
@@ -29,7 +31,7 @@ internal sealed class DanmuStylePreviewViewModel : ViewModelBase, IDisposable
     private GuardStylePreset? selectedMedalGuardPreset;
 
     /// <summary>
-    /// 创建礼物、六档 SC、三档上舰和不同粉丝牌场景的离线默认样本。
+    /// 创建六档 SC、三档上舰和不同粉丝牌场景的离线默认样本。
     /// </summary>
     public DanmuStylePreviewViewModel()
     {
@@ -93,7 +95,26 @@ internal sealed class DanmuStylePreviewViewModel : ViewModelBase, IDisposable
     public bool IsCompactDanmuDisplay
     {
         get => isCompactDanmuDisplay;
-        set => SetProperty(ref isCompactDanmuDisplay, value);
+        set
+        {
+            if (SetProperty(ref isCompactDanmuDisplay, value))
+            {
+                OnPropertyChanged(nameof(DanmuIdentityColumnRatio));
+            }
+        }
+    }
+
+    /// <summary>当前预览密度下的用户名区比例。</summary>
+    public double DanmuIdentityColumnRatio
+    {
+        get => danmuColumns.GetIdentityRatio(IsCompactDanmuDisplay);
+        set
+        {
+            if (danmuColumns.SetIdentityRatio(IsCompactDanmuDisplay, value))
+            {
+                OnPropertyChanged();
+            }
+        }
     }
 
     /// <summary>离线预览使用的可注入用户头像服务。</summary>
