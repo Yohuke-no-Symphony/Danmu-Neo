@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:components="using:Yohuke.DanmuNeo.Views.Components"
              xmlns:vm="using:Yohuke.DanmuNeo.ViewModels"
              xmlns:workspace="using:Yohuke.DanmuNeo.ViewModels.Items"
              x:Class="Yohuke.DanmuNeo.Views.Components.AddWorkspaceDialogView"
@@ -63,8 +64,12 @@
                                                     BorderThickness="1"
                                                     BorderBrush="{DynamicResource AppBorderBrush}"
                                                     CornerRadius="8">
-                                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                                                    <StackPanel Spacing="3">
+                                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                                    <components:UserAvatarView Width="36"
+                                                                               Height="36"
+                                                                               UserUid="{Binding AvatarUid}"
+                                                                               AvatarService="{Binding #Root.DataContext.UserAvatars}" />
+                                                    <StackPanel Grid.Column="1" Spacing="3">
                                                         <TextBlock Text="{Binding OwnerName}"
                                                                    FontWeight="SemiBold"
                                                                    TextTrimming="CharacterEllipsis" />
@@ -75,7 +80,7 @@
                                                         <TextBlock Text="{Binding SourceLabel}"
                                                                    Classes="muted" />
                                                     </StackPanel>
-                                                    <Button Grid.Column="1"
+                                                    <Button Grid.Column="2"
                                                             x:Name="AddSearchedRoomButton"
                                                             Classes="primaryButton"
                                                             Content="{Loc Key=UI.AddWorkspaceDialogView.Add}"

@@ -26,7 +26,8 @@ public sealed class LiveRoomSearchTestContext : IDisposable
             Workspaces = [new() { Name = "目标工作区", SortOrder = 0 }, new() { Name = "其他工作区", SortOrder = 1 }]
         });
         ViewModel = new(StateService, SearchService, AvatarService,
-            danmuConfigService: new FakeBilibiliDanmuConfigService(), accountSessions: accountSessions);
+            danmuConfigService: new FakeBilibiliDanmuConfigService(), accountSessions: accountSessions,
+            userAvatars: UserAvatars);
     }
 
     /// <summary>
@@ -48,6 +49,8 @@ public sealed class LiveRoomSearchTestContext : IDisposable
     /// 头像服务。
     /// </summary>
     public FakeRoomAvatarService AvatarService { get; } = new();
+
+    internal FakeUserAvatarService UserAvatars { get; } = new();
 
     /// <summary>
     /// 创建搜索结果。

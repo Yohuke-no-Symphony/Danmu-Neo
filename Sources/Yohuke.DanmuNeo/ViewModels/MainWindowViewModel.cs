@@ -196,7 +196,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable, IAsyncDis
         await SaveAsync();
     }
 
-    /// <summary>供发送者头像与回复 badge 共享的用户头像服务。</summary>
+    /// <summary>按 UID 获取和缓存头像的共享服务。</summary>
     public IUserAvatarService UserAvatars { get; }
 
     /// <summary>是否显示普通弹幕、SC 及回复对象的头像。</summary>

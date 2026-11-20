@@ -1,5 +1,6 @@
-using Yohuke.DanmuCore.Models.Search;
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Yohuke.DanmuCore.Models.Search;
 using Yohuke.DanmuNeo.I18n;
 
 namespace Yohuke.DanmuNeo.ViewModels.Items;
@@ -47,6 +48,11 @@ public sealed class LiveRoomSearchResultViewModel : ObservableObject
     /// 主播 UID。
     /// </summary>
     public string OwnerUid => result.OwnerUid;
+
+    /// <summary>用于头像查询的有效主播 UID。</summary>
+    public long AvatarUid => long.TryParse(OwnerUid, NumberStyles.Integer, CultureInfo.InvariantCulture, out var uid)
+        ? Math.Max(0, uid)
+        : 0;
 
     /// <summary>
     /// 不含搜索高亮的主播昵称。

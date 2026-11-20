@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.Platform;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Yohuke.DanmuNeo.Models.Workspace;
@@ -17,12 +18,20 @@ namespace Yohuke.DanmuNeo.Tests;
 public class LiveRoomSearchViewTests
 {
     /// <summary>
-    /// 点击搜索结果的添加按钮会执行主视图模型命令。
+    /// 搜索结果显示主播头像，并通过主视图模型命令添加房间。
     /// </summary>
     [AvaloniaFact]
-    public async Task ResultAddButtonUsesMainViewModelCommand()
+    public async Task ResultRowShowsOwnerAvatarAndAddsRoom()
     {
         using var context = new LiveRoomSearchTestContext();
+        var avatarPath = Path.Combine(context.StateService.ConfigDirectory, "search-avatar.png");
+        using (var file = File.Create(avatarPath))
+        {
+            using var asset = AssetLoader.Open(new("avares://Yohuke.DanmuNeo/Assets/favicon.png"));
+            asset.CopyTo(file);
+        }
+        context.UserAvatars.AvatarPath = avatarPath;
+
         var result = LiveRoomSearchTestContext.CreateResult();
         context.SearchService.RespondAsync = (_, _) => Task.FromResult(new LiveRoomSearchPage { Results = [result] });
         var viewModel = context.ViewModel;
@@ -38,10 +47,17 @@ public class LiveRoomSearchViewTests
             window.Show();
             Dispatcher.UIThread.RunJobs();
             window.UpdateLayout();
+            var avatar = Assert.Single(view.GetVisualDescendants().OfType<UserAvatarView>());
+            Assert.Equal(42L, avatar.UserUid);
+            Assert.Same(viewModel.UserAvatars, avatar.AvatarService);
+            await avatar.PendingLoad.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.NotNull(avatar.AvatarImage);
+            Assert.Equal(avatarPath, avatar.CurrentAvatarPath);
+
             var button = view.GetVisualDescendants().OfType<Button>()
                 .Single(control => control.Name == "AddSearchedRoomButton");
             Assert.Same(viewModel.AddSearchedRoomCommand, button.Command);
-            Assert.Same(result, button.CommandParameter);
+            Assert.Same(Assert.Single(viewModel.LiveRoomSearchResults), button.CommandParameter);
             Assert.True(button.IsEffectivelyEnabled);
             var point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!
                 .Value;

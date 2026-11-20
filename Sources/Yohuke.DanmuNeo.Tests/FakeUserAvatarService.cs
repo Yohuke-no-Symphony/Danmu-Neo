@@ -3,9 +3,11 @@ using Yohuke.DanmuNeo.Services;
 
 namespace Yohuke.DanmuNeo.Tests;
 
-/// <summary>为现有界面回归测试提供离线的空头像响应。</summary>
+/// <summary>为界面测试提供离线头像响应。</summary>
 public sealed class FakeUserAvatarService : IUserAvatarService
 {
+    internal string AvatarPath { get; set; } = "";
+
     /// <inheritdoc/>
     public event Action<long>? AvatarChanged
     {
@@ -21,7 +23,7 @@ public sealed class FakeUserAvatarService : IUserAvatarService
     public Task<string> GetAvatarAsync(long userUid, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.FromResult("");
+        return Task.FromResult(AvatarPath);
     }
 
     /// <inheritdoc/>
