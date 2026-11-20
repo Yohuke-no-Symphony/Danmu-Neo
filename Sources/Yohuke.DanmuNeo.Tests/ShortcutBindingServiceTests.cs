@@ -7,12 +7,12 @@ namespace Yohuke.DanmuNeo.Tests;
 public class ShortcutBindingServiceTests
 {
     /// <summary>
-    /// 旧配置补齐弹幕和 SC 回顶快捷键，保留已有绑定且不引入默认按键冲突。
+    /// 旧配置补齐弹幕和 SC 回到最新的快捷键，并保留已有绑定。
     /// </summary>
     [Theory]
     [InlineData("danmu.scrollToTop", "Alt+Home", KeyModifiers.Alt)]
     [InlineData("superChat.scrollToTop", "Alt+Shift+Home", KeyModifiers.Alt | KeyModifiers.Shift)]
-    public void NormalizeAddsFeedScrollToTopWithoutChangingCustomBinding(string actionKey, string gesture,
+    public void NormalizeAddsFeedScrollToLatestWithoutChangingCustomBinding(string actionKey, string gesture,
         KeyModifiers modifiers)
     {
         var existing = new ShortcutBindingState
@@ -25,10 +25,10 @@ public class ShortcutBindingServiceTests
 
         Assert.Same(existing, settings.ShortcutBindings.Single(item => item.ActionKey == existing.ActionKey));
         Assert.Equal("Ctrl+F", existing.GestureText);
-        var scrollToTop = Assert.Single(settings.ShortcutBindings, item => item.ActionKey == actionKey);
-        Assert.True(scrollToTop.IsEnabled);
-        Assert.Equal(gesture, scrollToTop.GestureText);
-        Assert.Equal(scrollToTop.ActionKey,
+        var scrollToLatest = Assert.Single(settings.ShortcutBindings, item => item.ActionKey == actionKey);
+        Assert.True(scrollToLatest.IsEnabled);
+        Assert.Equal(gesture, scrollToLatest.GestureText);
+        Assert.Equal(scrollToLatest.ActionKey,
             ShortcutBindingService.GetTriggeredActionKey(settings.ShortcutBindings, Key.Home, modifiers));
         Assert.Empty(ShortcutBindingService.GetConflictActionKeys(settings.ShortcutBindings));
     }
@@ -146,7 +146,7 @@ public class ShortcutBindingServiceTests
     }
 
     /// <summary>
-    /// 歌词、弹幕与 SC 回顶的禁用、清空和自定义手势经保存读取后仍然保留。
+    /// 保存并读取后，仍保留歌词、弹幕和 SC 快捷键的禁用状态和用户设置。
     /// </summary>
     [Theory]
     [InlineData(ShortcutActionKeys.LYRIC_SEEK_NEXT, "", false)]

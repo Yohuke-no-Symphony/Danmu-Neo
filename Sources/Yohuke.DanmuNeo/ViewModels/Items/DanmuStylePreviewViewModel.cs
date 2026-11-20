@@ -228,7 +228,7 @@ internal sealed class DanmuStylePreviewViewModel : ViewModelBase, IDisposable
 
     internal void AddDanmu()
     {
-        DanmuItems.Insert(0, CreateDanmuItem(DateTimeOffset.Now, NormalizeContent(Content)));
+        DanmuItems.Add(CreateDanmuItem(DateTimeOffset.Now, NormalizeContent(Content)));
     }
 
     internal void AddDanmuBatch()
@@ -238,7 +238,7 @@ internal sealed class DanmuStylePreviewViewModel : ViewModelBase, IDisposable
 
         for (var index = 0; index < DANMU_BATCH_SIZE; index++)
         {
-            DanmuItems.Insert(0, CreateDanmuItem(
+            DanmuItems.Add(CreateDanmuItem(
                 now.AddMilliseconds(index),
                 Localization.Format("Preview.BatchContent", contentText, index + 1, DANMU_BATCH_SIZE)));
         }
@@ -254,7 +254,7 @@ internal sealed class DanmuStylePreviewViewModel : ViewModelBase, IDisposable
         var borderColor = Color.TryParse(SuperChatColorText, out var customColor)
             ? customColor
             : preset.BorderColor;
-        SuperChats.Insert(0, CreateSuperChatItem(
+        SuperChats.Add(CreateSuperChatItem(
             preset,
             NormalizeUserName(UserName),
             NormalizeContent(Content),
@@ -269,7 +269,7 @@ internal sealed class DanmuStylePreviewViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        SuperChats.Insert(0, CreateGuardPurchaseItem(preset, NormalizeUserName(UserName), DateTimeOffset.Now));
+        SuperChats.Add(CreateGuardPurchaseItem(preset, NormalizeUserName(UserName), DateTimeOffset.Now));
     }
 
     internal void ClearSamples()
@@ -283,11 +283,13 @@ internal sealed class DanmuStylePreviewViewModel : ViewModelBase, IDisposable
     {
         ClearSamples();
         var now = DateTimeOffset.Now;
+        var firstPaidSample = now.AddMinutes(-SuperChatPresets.Count - GuardPresets.Count);
+        var firstDanmuSample = now.AddSeconds(-36);
 
         for (var index = 0; index < SuperChatPresets.Count; index++)
         {
             var preset = SuperChatPresets[index];
-            var item = CreateSuperChatItem(preset, "", "", now.AddMinutes(-index), preset.BorderColor);
+            var item = CreateSuperChatItem(preset, "", "", firstPaidSample.AddMinutes(index), preset.BorderColor);
             SuperChats.Add(item);
             RegisterSampleLocalization(() =>
             {
@@ -299,21 +301,21 @@ internal sealed class DanmuStylePreviewViewModel : ViewModelBase, IDisposable
         for (var index = 0; index < GuardPresets.Count; index++)
         {
             var preset = GuardPresets[index];
-            var item = CreateGuardPurchaseItem(preset, "", now.AddMinutes(-SuperChatPresets.Count - index));
+            var item = CreateGuardPurchaseItem(preset, "", firstPaidSample.AddMinutes(SuperChatPresets.Count + index));
             SuperChats.Add(item);
             RegisterSampleLocalization(() => item.UserName = Localization.Format("Preview.GuardUser", preset.DisplayName));
         }
 
-        AddDanmuSample(new() { Time = now, UserUid = "10001" }, "Preview.ShortUser", "Preview.ShortContent");
+        AddDanmuSample(new() { Time = firstDanmuSample, UserUid = "10001" }, "Preview.ShortUser", "Preview.ShortContent");
         AddDanmuSample(new()
         {
-            Time = now.AddSeconds(-4),
+            Time = firstDanmuSample.AddSeconds(4),
             UserUid = "10005",
             IsGift = true
         }, "Preview.GiftUser", "Preview.GiftContent");
         AddDanmuSample(new()
         {
-            Time = now.AddSeconds(-8),
+            Time = firstDanmuSample.AddSeconds(8),
             UserUid = "10002",
             MedalName = "肉肉",
             MedalLevel = 25,
@@ -322,12 +324,12 @@ internal sealed class DanmuStylePreviewViewModel : ViewModelBase, IDisposable
         }, "Preview.LongUser", "Preview.LongContent");
         AddDanmuSample(new()
         {
-            Time = now.AddSeconds(-16),
+            Time = firstDanmuSample.AddSeconds(16),
             UserUid = "10003",
             MedalName = "牵丝蝠",
             MedalLevel = 8
         }, "Preview.EmojiUser", "Preview.MixedContent");
-        var statusItem = new DanmuFeedItem { Time = now.AddSeconds(-24), UserUid = "10004" };
+        var statusItem = new DanmuFeedItem { Time = firstDanmuSample.AddSeconds(24), UserUid = "10004" };
         statusItem.SetLocalizedStatus("Preview.Forwarded");
         AddDanmuSample(statusItem, "Preview.StatusUser", "Preview.StatusContent");
 
@@ -335,7 +337,7 @@ internal sealed class DanmuStylePreviewViewModel : ViewModelBase, IDisposable
         {
             var item = new DanmuFeedItem
             {
-                Time = now.AddSeconds(-32 - preset.GuardLevel),
+                Time = firstDanmuSample.AddSeconds(32 + preset.GuardLevel),
                 UserUid = $"medal-guard-{preset.GuardLevel}",
                 MedalName = "肉肉",
                 MedalLevel = 25,

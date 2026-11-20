@@ -6,6 +6,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Lucide.Avalonia;
 using Yohuke.DanmuNeo.I18n;
 using Yohuke.DanmuNeo.Layouts;
 using Yohuke.DanmuNeo.Models.Workspace;
@@ -16,20 +17,20 @@ using Yohuke.DanmuNeo.Windowing;
 namespace Yohuke.DanmuNeo.Tests;
 
 /// <summary>
-/// 验证 SC 标题栏回顶、原生列表选择和独立快捷键。
+/// 验证 SC 标题栏回到最新、原生列表选择和独立快捷键。
 /// </summary>
 [Collection(AvaloniaDispatcherTestCollection.NAME)]
-public class SuperChatScrollToTopTests
+public class SuperChatScrollToLatestTests
 {
     /// <summary>
-    /// 普通和紧凑显示下，停靠与浮动标题栏均能回顶，并保留列表选择和空列表行为。
+    /// 普通和紧凑显示下，停靠与浮动标题栏均能回到最新，并保留列表选择和空列表行为。
     /// </summary>
     [AvaloniaTheory]
     [InlineData(false, false)]
     [InlineData(false, true)]
     [InlineData(true, false)]
     [InlineData(true, true)]
-    public async Task HeaderButtonReturnsNativeListToTop(bool floating, bool compact)
+    public async Task HeaderButtonReturnsNativeListToLatest(bool floating, bool compact)
     {
         using var fixture = new LiveRoomFeedViewTestContext();
         fixture.ViewModel.IsCompactDanmuDisplay = compact;
@@ -61,30 +62,56 @@ public class SuperChatScrollToTopTests
             Assert.NotNull(button.Command);
             Assert.Equal(22, button.Bounds.Width);
             Assert.Equal(22, button.Bounds.Height);
-            var icon = Assert.IsAssignableFrom<Control>(button.Content);
+            var icon = Assert.IsType<LucideIcon>(button.Content);
+            Assert.Equal(LucideIconKind.ArrowDownToLine, icon.Kind);
             Assert.InRange(icon.Bounds.Width, 16, button.Bounds.Width);
             Assert.InRange(icon.Bounds.Height, 16, button.Bounds.Height);
+            Assert.Equal(scroll.ScrollBarMaximum.Y, scroll.Offset.Y, 0.5);
             list.SelectedIndex = 40;
-            var selected = list.SelectedItem;
+            var selected = Assert.IsType<SuperChatItem>(list.SelectedItem);
             list.ScrollIntoView(40);
             PumpLayout(host);
-            Assert.True(scroll.Offset.Y > 1);
+            Assert.InRange(scroll.Offset.Y, 0, scroll.ScrollBarMaximum.Y - 1);
+            var anchor = Assert.IsType<ListBoxItem>(list.ContainerFromItem(selected));
+            var anchorY = anchor.TranslatePoint(default, scroll)!.Value.Y;
             fixture.Room.AddSuperChat(new()
             {
-                RoomId = "100", MessageId = "pending-sc", UserName = "新 SC", PriceText = "¥30",
+                RoomId = "100", MessageId = "reading-sc", UserName = "翻阅时收到的 SC", PriceText = "¥30",
                 Content = new string('长', 180)
+            });
+            PumpLayout(host);
+
+            anchor = Assert.IsType<ListBoxItem>(list.ContainerFromItem(selected));
+            Assert.Equal(anchorY, anchor.TranslatePoint(default, scroll)!.Value.Y, 0.5);
+            Assert.InRange(scroll.Offset.Y, 0, scroll.ScrollBarMaximum.Y - 1);
+            fixture.Room.AddSuperChat(new()
+            {
+                RoomId = "100", MessageId = "pending-sc", UserName = "排队中的 SC", PriceText = "¥30",
+                Content = new string('新', 180)
             });
 
             ClickButton(host, button);
             PumpLayout(host);
 
-            Assert.Equal(0, scroll.Offset.Y);
+            Assert.Equal(scroll.ScrollBarMaximum.Y, scroll.Offset.Y, 0.5);
             Assert.Same(selected, list.SelectedItem);
+            fixture.Room.AddSuperChat(new()
+            {
+                RoomId = "100", MessageId = "following-sc", UserName = "恢复跟随后的 SC", PriceText = "¥30",
+                Content = "最新 SC"
+            });
+            PumpLayout(host);
+            Assert.Equal(scroll.ScrollBarMaximum.Y, scroll.Offset.Y, 0.5);
+            Assert.NotNull(list.ContainerFromItem(fixture.Room.SuperChats[^1]));
             fixture.Room.SuperChats.Clear();
             PumpLayout(host);
             ClickButton(host, button);
             PumpLayout(host);
             Assert.Equal(0, scroll.Offset.Y);
+            fixture.Room.AddSuperChat(new() { RoomId = "100", MessageId = "first-sc", Content = "首条 SC" });
+            PumpLayout(host);
+            var first = Assert.IsType<ListBoxItem>(list.ContainerFromItem(fixture.Room.SuperChats[0]));
+            Assert.InRange(first.TranslatePoint(default, scroll)!.Value.Y, 0, 0.5);
             fixture.ViewModel.SelectedWorkspace!.SelectedRoom = null;
             PumpLayout(host);
             Assert.False(button.IsEffectivelyEnabled);
@@ -131,7 +158,7 @@ public class SuperChatScrollToTopTests
             workbench.Panels.FocusInputDraft();
             PumpLayout(main, host);
             var input = workbench.Panels.Composer.FindControl<TextBox>("InputDraftTextBox")!;
-            input.Text = "保留 SC 回顶前的输入内容";
+            input.Text = "保留 SC 回到最新前的输入内容";
             input.CaretIndex = 3;
             var list = workbench.Panels.SuperChat.GetVisualDescendants().OfType<ListBox>().Single();
             var scroll = list.GetVisualDescendants().OfType<ScrollViewer>().Single();
@@ -139,8 +166,8 @@ public class SuperChatScrollToTopTests
             list.ScrollIntoView(40);
             danmuScroll.Offset = new(0, 180);
             PumpLayout(main, host);
-            Assert.True(scroll.Offset.Y > 1);
-            Assert.True(danmuScroll.Offset.Y > 1);
+            Assert.InRange(scroll.Offset.Y, 0, scroll.ScrollBarMaximum.Y - 1);
+            Assert.InRange(danmuScroll.Offset.Y, 0, danmuScroll.ScrollBarMaximum.Y - 1);
             Assert.True(input.IsFocused);
             var modifiers = RawInputModifiers.Alt | RawInputModifiers.Shift;
 
@@ -148,9 +175,9 @@ public class SuperChatScrollToTopTests
             host.KeyReleaseQwerty(PhysicalKey.Home, modifiers);
             PumpLayout(main, host);
 
-            Assert.Equal(0, scroll.Offset.Y);
-            Assert.True(danmuScroll.Offset.Y > 1);
-            Assert.Equal("保留 SC 回顶前的输入内容", input.Text);
+            Assert.Equal(scroll.ScrollBarMaximum.Y, scroll.Offset.Y, 0.5);
+            Assert.InRange(danmuScroll.Offset.Y, 0, danmuScroll.ScrollBarMaximum.Y - 1);
+            Assert.Equal("保留 SC 回到最新前的输入内容", input.Text);
             Assert.Equal(3, input.CaretIndex);
             Assert.True(input.IsFocused);
             list.ScrollIntoView(40);
@@ -158,8 +185,8 @@ public class SuperChatScrollToTopTests
             host.KeyPressQwerty(PhysicalKey.Home, RawInputModifiers.Alt);
             host.KeyReleaseQwerty(PhysicalKey.Home, RawInputModifiers.Alt);
             PumpLayout(main, host);
-            Assert.Equal(0, danmuScroll.Offset.Y);
-            Assert.True(scroll.Offset.Y > 1);
+            Assert.Equal(danmuScroll.ScrollBarMaximum.Y, danmuScroll.Offset.Y, 0.5);
+            Assert.InRange(scroll.Offset.Y, 0, scroll.ScrollBarMaximum.Y - 1);
         }
         finally
         {
@@ -200,10 +227,10 @@ public class SuperChatScrollToTopTests
 
                 Assert.Same(button, GetHeaderButton(floating));
                 Assert.Same(command, button.Command);
-                Assert.Equal(languageId == "zh-CN" ? "回到顶部" : "Back to top", ToolTip.GetTip(button));
+                Assert.Equal(languageId == "zh-CN" ? "回到最新" : "Go to latest", ToolTip.GetTip(button));
                 Assert.Equal(ToolTip.GetTip(button), AutomationProperties.GetName(button));
                 Assert.Equal("SC", group.Name);
-                Assert.Equal(languageId == "zh-CN" ? "SC 回到顶部" : "Scroll SC to top", binding.Name);
+                Assert.Equal(languageId == "zh-CN" ? "SC 回到最新" : "Go to latest SC", binding.Name);
             }
         }
         finally
@@ -229,7 +256,7 @@ public class SuperChatScrollToTopTests
     private static Button GetHeaderButton(Window window)
     {
         return Assert.Single(window.GetVisualDescendants().OfType<Button>(),
-            button => button.Name == "SuperChatScrollToTopButton" && button.IsEffectivelyVisible);
+            button => button.Name == "SuperChatScrollToLatestButton" && button.IsEffectivelyVisible);
     }
 
     private static void ClickButton(Window window, Button button)

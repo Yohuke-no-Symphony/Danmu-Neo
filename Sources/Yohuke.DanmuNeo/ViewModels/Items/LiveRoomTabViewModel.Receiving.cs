@@ -401,20 +401,20 @@ public partial class LiveRoomTabViewModel
             ReplyIsMystery = message.ReplyIsMystery,
             Content = message.Content
         };
-        var index = 0;
-        if (isHistory && message.Timestamp <= 0)
+        if (isHistory)
         {
-            index = DanmuItems.Count;
-        }
-        else if (isHistory)
-        {
-            while (index < DanmuItems.Count && DanmuItems[index].Time >= item.Time)
+            var index = message.Timestamp > 0 ? DanmuItems.Count : 0;
+            while (index > 0 && DanmuItems[index - 1].Time >= item.Time)
             {
-                index++;
+                index--;
             }
+            DanmuItems.Insert(index, item);
+        }
+        else
+        {
+            DanmuItems.Add(item);
         }
 
-        DanmuItems.Insert(index, item);
         TrimDanmuItems();
         if (emoticonCacheService is not null && message.Emoticons.Count > 0)
         {
@@ -533,7 +533,7 @@ public partial class LiveRoomTabViewModel
         };
         SetGiftContent(item, message.GiftName, initialCount, message.UnitPrice);
 
-        DanmuItems.Insert(0, item);
+        DanmuItems.Add(item);
         TrimDanmuItems();
 
         if (!string.IsNullOrWhiteSpace(comboIdentity))
@@ -611,8 +611,8 @@ public partial class LiveRoomTabViewModel
     {
         while (DanmuItems.Count > 300)
         {
-            var removedItem = DanmuItems[^1];
-            DanmuItems.RemoveAt(DanmuItems.Count - 1);
+            var removedItem = DanmuItems[0];
+            DanmuItems.RemoveAt(0);
             RemoveGiftCombo(removedItem);
         }
     }
@@ -648,7 +648,7 @@ public partial class LiveRoomTabViewModel
             recentSuperChatIdentities.Remove(recentSuperChatIdentityOrder.Dequeue());
         }
 
-        SuperChats.Insert(0, new()
+        SuperChats.Add(new()
         {
             MessageId = message.MessageId,
             UserUid = message.Uid,
@@ -658,7 +658,7 @@ public partial class LiveRoomTabViewModel
             BorderColor = CreateSuperChatBorderColor(message.BorderColor),
             Content = message.Content
         });
-        Trim(SuperChats, 100);
+        Trim(SuperChats, 100, oldestFirst: true);
     }
 
     private static string CreateSuperChatIdentity(BilibiliSuperChatMessage message)
@@ -717,7 +717,7 @@ public partial class LiveRoomTabViewModel
             }
         }
 
-        SuperChats.Insert(0, new()
+        SuperChats.Add(new()
         {
             Kind = LivePaidEventKind.GuardPurchase,
             MessageId = message.MessageId,
@@ -727,7 +727,7 @@ public partial class LiveRoomTabViewModel
             GuardLevel = message.GuardLevel,
             BorderColor = GuardPurchaseStyleService.GetBorderColor(message.GuardLevel)
         });
-        Trim(SuperChats, 100);
+        Trim(SuperChats, 100, oldestFirst: true);
     }
 
     private static Color CreateSuperChatBorderColor(string colorText)

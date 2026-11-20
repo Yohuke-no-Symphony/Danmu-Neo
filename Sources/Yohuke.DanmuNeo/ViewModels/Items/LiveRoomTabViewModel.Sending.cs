@@ -249,7 +249,7 @@ public partial class LiveRoomTabViewModel
             if (existing is null)
             {
                 TranslateHistoryItems.Insert(0, item);
-                Trim(TranslateHistoryItems, 1000);
+                Trim(TranslateHistoryItems, 1000, oldestFirst: false);
             }
             else
             {
@@ -264,7 +264,7 @@ public partial class LiveRoomTabViewModel
             }
             if (!item.IsSendAccepted)
             {
-                DanmuItems.Insert(0, item);
+                DanmuItems.Add(item);
                 TrimDanmuItems();
             }
         });

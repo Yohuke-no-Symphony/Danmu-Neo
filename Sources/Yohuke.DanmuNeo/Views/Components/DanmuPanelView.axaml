@@ -10,13 +10,13 @@
                                x:Name="Root">
     <components:WorkbenchRoomPanel.HeaderActionsTemplate>
         <DataTemplate x:DataType="components:DanmuPanelView">
-            <Button x:Name="DanmuScrollToTopButton"
+            <Button x:Name="DanmuScrollToLatestButton"
                     Classes="dockChromeButton"
                     Foreground="{DynamicResource AppMutedTextBrush}"
-                    ToolTip.Tip="{Loc Key=UI.DanmuPanelView.ScrollToTop}"
-                    AutomationProperties.Name="{Loc Key=UI.DanmuPanelView.ScrollToTop}"
-                    Command="{Binding ScrollToTopCommand}">
-                <LucideIcon Kind="ArrowUpToLine" Width="16" Height="16" />
+                    ToolTip.Tip="{Loc Key=UI.DanmuPanelView.ScrollToLatest}"
+                    AutomationProperties.Name="{Loc Key=UI.DanmuPanelView.ScrollToLatest}"
+                    Command="{Binding ScrollToLatestCommand}">
+                <LucideIcon Kind="ArrowDownToLine" Width="16" Height="16" />
             </Button>
         </DataTemplate>
     </components:WorkbenchRoomPanel.HeaderActionsTemplate>
@@ -28,6 +28,7 @@
                           Margin="0" HorizontalScrollBarVisibility="Disabled">
                 <components:DanmuFeedList x:Name="DanmuItemsControl"
                                           Classes="scrollSafeContent danmuFeedList"
+                                          VerticalAlignment="Top"
                                           ItemsSource="{Binding DanmuItems}"
                                           IsCompactDisplay="{Binding #Root.Context.Application.IsCompactDanmuDisplay}"
                                           IdentityColumnRatio="{Binding #Root.Context.Application.DanmuIdentityColumnRatio}">

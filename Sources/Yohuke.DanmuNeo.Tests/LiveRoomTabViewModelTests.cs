@@ -74,7 +74,8 @@ public class LiveRoomTabViewModelTests
         viewModel.AddSuperChat(CreateSuperChatMessage("sc-0"));
 
         Assert.Equal(100, viewModel.SuperChats.Count);
-        Assert.Equal("sc-0", viewModel.SuperChats[0].MessageId);
+        Assert.Equal("sc-414", viewModel.SuperChats[0].MessageId);
+        Assert.Equal("sc-0", viewModel.SuperChats[^1].MessageId);
     }
 
     [Fact]

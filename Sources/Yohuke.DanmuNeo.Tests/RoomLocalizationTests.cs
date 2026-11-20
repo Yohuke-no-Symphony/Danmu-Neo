@@ -241,7 +241,7 @@ public sealed class RoomLocalizationTests
         preview.SelectedMedalGuardPreset = preview.MedalGuardPresets[3];
         preview.SuperChatColorText = "#123456";
         preview.AddDanmu();
-        var created = preview.DanmuItems[0];
+        var created = preview.DanmuItems[^1];
         var danmuItems = preview.DanmuItems.ToArray();
         var superChats = preview.SuperChats.ToArray();
         var selectedSuperChat = preview.SelectedSuperChatPreset;

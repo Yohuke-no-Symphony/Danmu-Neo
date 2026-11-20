@@ -16,14 +16,14 @@ public static partial class ShortcutActionKeys
     public const string LIVE_ROOM_STOP_LISTENING = "liveRoom.stopListening";
 
     /// <summary>
-    /// 弹幕列表回到顶部并恢复跟随。
+    /// 回到最新弹幕并恢复跟随，沿用原动作键以兼容已保存的快捷键。
     /// </summary>
-    public const string DANMU_SCROLL_TO_TOP = "danmu.scrollToTop";
+    public const string DANMU_SCROLL_TO_LATEST = "danmu.scrollToTop";
 
     /// <summary>
-    /// SC 和上舰记录列表回到顶部。
+    /// 回到最新 SC 或上舰记录并恢复跟随，沿用原动作键以兼容已保存的快捷键。
     /// </summary>
-    public const string SUPER_CHAT_SCROLL_TO_TOP = "superChat.scrollToTop";
+    public const string SUPER_CHAT_SCROLL_TO_LATEST = "superChat.scrollToTop";
 
     /// <summary>
     /// 开始播放直播。

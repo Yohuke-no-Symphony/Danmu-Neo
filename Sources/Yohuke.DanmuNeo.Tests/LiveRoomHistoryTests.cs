@@ -53,13 +53,15 @@ public class LiveRoomHistoryTests
         var live = Assert.Single(room.DanmuItems);
         history.Requests.Dequeue().SetResult([
             new() { RoomId = "100", Uid = 1, Content = "历史", Timestamp = 1800000000 },
+            new() { RoomId = "100", Uid = 1, Content = "更早的历史", Timestamp = 1799999999 },
             new() { RoomId = "100", Uid = 42, Content = "实时", Timestamp = 1800000001 }
         ]);
         await room.PendingHistoryTask;
         Dispatcher.UIThread.RunJobs();
-        Assert.Equal(2, room.DanmuItems.Count);
-        Assert.Same(live, room.DanmuItems[0]);
+        Assert.Equal(3, room.DanmuItems.Count);
+        Assert.Equal("更早的历史", room.DanmuItems[0].Content);
         Assert.Equal("历史", room.DanmuItems[1].Content);
+        Assert.Same(live, room.DanmuItems[^1]);
         socket.EmitRecovered();
         Assert.Equal(2, history.Count);
         history.Requests.Dequeue().SetException(new IOException("history failed"));

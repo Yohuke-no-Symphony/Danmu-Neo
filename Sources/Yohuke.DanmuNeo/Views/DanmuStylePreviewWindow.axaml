@@ -99,7 +99,8 @@
                                    Classes="muted" />
                     </Grid>
 
-                    <ListBox Grid.Row="1"
+                    <ListBox x:Name="SuperChatListBox"
+                             Grid.Row="1"
                              Classes="feedList"
                              ItemsSource="{Binding SuperChats}">
                         <ListBox.ItemTemplate>
@@ -172,6 +173,7 @@
                                   Margin="0,6,0,0" HorizontalScrollBarVisibility="Disabled">
                         <components:DanmuFeedList x:Name="DanmuItemsControl"
                                                   Classes="scrollSafeContent danmuFeedList"
+                                                  VerticalAlignment="Top"
                                                   ItemsSource="{Binding DanmuItems}"
                                                   IsCompactDisplay="{Binding IsCompactDanmuDisplay}"
                                                   IdentityColumnRatio="{Binding DanmuIdentityColumnRatio}">

@@ -1988,11 +1988,11 @@ public partial class LiveRoomTabViewModel : ViewModelBase, IDisposable
         SeekNextAndPlayLyricCommand.NotifyCanExecuteChanged();
     }
 
-    private static void Trim<T>(ObservableCollection<T> collection, int maxCount)
+    private static void Trim<T>(ObservableCollection<T> collection, int maxCount, bool oldestFirst)
     {
         while (collection.Count > maxCount)
         {
-            collection.RemoveAt(collection.Count - 1);
+            collection.RemoveAt(oldestFirst ? 0 : collection.Count - 1);
         }
     }
 }

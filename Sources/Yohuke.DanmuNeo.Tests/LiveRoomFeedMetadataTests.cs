@@ -22,7 +22,7 @@ public class LiveRoomFeedMetadataTests
             MedalName = "夜更", MedalLevel = 25, MedalGuardLevel = 3
         });
 
-        var item = context.Room.DanmuItems[0];
+        var item = context.Room.DanmuItems[^1];
         Assert.Equal("100", item.RoomId);
         Assert.True(item.IsRoomAdmin);
         Assert.True(item.HasMedal);
@@ -54,7 +54,7 @@ public class LiveRoomFeedMetadataTests
         });
 
         Assert.Equal(2, context.Room.SuperChats.Count);
-        var purchase = context.Room.SuperChats[0];
+        var purchase = context.Room.SuperChats[1];
         Assert.Equal(LivePaidEventKind.GuardPurchase, purchase.Kind);
         Assert.Equal(label, purchase.BadgeText);
         Assert.Equal(Color.Parse(color), purchase.BorderColor);
@@ -62,10 +62,10 @@ public class LiveRoomFeedMetadataTests
         Assert.Empty(purchase.PriceText);
         Assert.Empty(purchase.Content);
         Assert.False(purchase.CanInsertContent);
-        Assert.Equal("¥30", context.Room.SuperChats[1].BadgeText);
+        Assert.Equal("¥30", context.Room.SuperChats[0].BadgeText);
         context.Room.CopySuperChat(purchase);
         Assert.Empty(context.Room.InputDraft);
-        context.Room.CopySuperChat(context.Room.SuperChats[1]);
+        context.Room.CopySuperChat(context.Room.SuperChats[0]);
         Assert.Contains("留言", context.Room.InputDraft);
     }
 

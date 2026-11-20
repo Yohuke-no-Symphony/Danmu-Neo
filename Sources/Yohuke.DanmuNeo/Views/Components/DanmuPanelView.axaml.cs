@@ -12,7 +12,7 @@ namespace Yohuke.DanmuNeo.Views.Components;
 /// </summary>
 public partial class DanmuPanelView : WorkbenchRoomPanel
 {
-    private readonly DanmuFeedScrollController scrollController;
+    private readonly FeedScrollController scrollController;
     private readonly WorkbenchFeedInteraction interactions = null!;
 
     /// <summary>
@@ -27,16 +27,16 @@ public partial class DanmuPanelView : WorkbenchRoomPanel
     /// <summary>创建供 XAML 加载器使用的弹幕面板。</summary>
     public DanmuPanelView()
     {
-        ScrollToTopCommand = new RelayCommand(ScrollToTop, () => DataContext is LiveRoomTabViewModel);
+        ScrollToLatestCommand = new RelayCommand(ScrollToLatest, () => DataContext is LiveRoomTabViewModel);
         InitializeComponent();
         scrollController = new(DanmuScrollViewer, DanmuItemsControl);
     }
 
     /// <summary>回到最新弹幕并恢复自动跟随的界面命令。</summary>
-    public IRelayCommand ScrollToTopCommand { get; }
+    public IRelayCommand ScrollToLatestCommand { get; }
 
-    /// <summary>清除历史阅读锚点并立即回到弹幕列表顶部。</summary>
-    public void ScrollToTop()
+    /// <summary>结束历史翻阅并回到最新弹幕。</summary>
+    public void ScrollToLatest()
     {
         scrollController.ScrollToLatest();
     }
@@ -45,7 +45,7 @@ public partial class DanmuPanelView : WorkbenchRoomPanel
     protected override void OnCurrentRoomChanged(LiveRoomTabViewModel? oldRoom, LiveRoomTabViewModel? newRoom)
     {
         scrollController.Attach(newRoom?.DanmuItems);
-        ScrollToTopCommand.NotifyCanExecuteChanged();
+        ScrollToLatestCommand.NotifyCanExecuteChanged();
     }
 
     /// <inheritdoc/>

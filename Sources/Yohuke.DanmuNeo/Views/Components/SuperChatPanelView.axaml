@@ -10,13 +10,13 @@
                                x:Name="Root">
     <components:WorkbenchRoomPanel.HeaderActionsTemplate>
         <DataTemplate x:DataType="components:SuperChatPanelView">
-            <Button x:Name="SuperChatScrollToTopButton"
+            <Button x:Name="SuperChatScrollToLatestButton"
                     Classes="dockChromeButton"
                     Foreground="{DynamicResource AppMutedTextBrush}"
-                    ToolTip.Tip="{Loc Key=UI.SuperChatPanelView.ScrollToTop}"
-                    AutomationProperties.Name="{Loc Key=UI.SuperChatPanelView.ScrollToTop}"
-                    Command="{Binding ScrollToTopCommand}">
-                <LucideIcon Kind="ArrowUpToLine" Width="16" Height="16" />
+                    ToolTip.Tip="{Loc Key=UI.SuperChatPanelView.ScrollToLatest}"
+                    AutomationProperties.Name="{Loc Key=UI.SuperChatPanelView.ScrollToLatest}"
+                    Command="{Binding ScrollToLatestCommand}">
+                <LucideIcon Kind="ArrowDownToLine" Width="16" Height="16" />
             </Button>
         </DataTemplate>
     </components:WorkbenchRoomPanel.HeaderActionsTemplate>

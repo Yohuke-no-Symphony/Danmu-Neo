@@ -33,7 +33,7 @@ public partial class LiveRoomTabViewModel
             return;
         }
 
-        DanmuItems.Insert(0, new RedPocketFeedItem(message));
+        DanmuItems.Add(new RedPocketFeedItem(message));
         TrimDanmuItems();
     }
 }

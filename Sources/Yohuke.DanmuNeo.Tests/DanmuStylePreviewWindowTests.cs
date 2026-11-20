@@ -127,7 +127,7 @@ public class DanmuStylePreviewWindowTests
     }
 
     /// <summary>
-    /// 批量按钮真实添加弹幕，下翻后新弹幕不拉回，返回顶部后恢复跟随。
+    /// 批量添加后可向上翻阅，返回底部后恢复跟随。
     /// </summary>
     [AvaloniaFact]
     public void BatchButtonAndScrollMatchProductionBehavior()
@@ -146,17 +146,18 @@ public class DanmuStylePreviewWindowTests
             Assert.Equal(88, viewModel.DanmuItems.Count);
             PumpLayout(window);
             var scroll = window.FindControl<ScrollViewer>("DanmuScrollViewer")!;
-            viewModel.AddDanmu();
-            scroll.Offset = new Vector(0, 180);
-            PumpLayout(window);
-            Assert.True(scroll.Offset.Y > 1);
+            Assert.Equal(scroll.ScrollBarMaximum.Y, scroll.Offset.Y, 0.5);
             var point = scroll.TranslatePoint(new Point(scroll.Bounds.Width / 2, scroll.Bounds.Height / 2), window)!.Value;
             window.MouseMove(point);
-            window.MouseWheel(point, new Vector(0, 1000));
+            viewModel.AddDanmu();
+            window.MouseWheel(point, new Vector(0, 6));
+            PumpLayout(window);
+            Assert.InRange(scroll.Offset.Y, 0, scroll.ScrollBarMaximum.Y - 1);
+            window.MouseWheel(point, new Vector(0, -1000));
             PumpLayout(window);
             viewModel.AddDanmu();
             PumpLayout(window);
-            Assert.Equal(0, scroll.Offset.Y);
+            Assert.Equal(scroll.ScrollBarMaximum.Y, scroll.Offset.Y, 0.5);
         }
         finally
         {
@@ -251,7 +252,7 @@ public class DanmuStylePreviewWindowTests
         viewModel.UserName = "这是一个很长的上舰用户名，用于检查复制完整内容";
         viewModel.SelectedGuardPreset = viewModel.GuardPresets[index];
         viewModel.AddGuardPurchase();
-        var item = viewModel.SuperChats[0];
+        var item = viewModel.SuperChats[^1];
 
         try
         {

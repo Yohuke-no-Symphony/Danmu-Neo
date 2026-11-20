@@ -17,23 +17,25 @@ namespace Yohuke.DanmuNeo.Views;
 public partial class DanmuStylePreviewWindow : Window
 {
     private readonly DanmuStylePreviewViewModel viewModel = new();
-    private readonly DanmuFeedScrollController scrollController;
+    private readonly FeedScrollController danmuScrollController;
+    private readonly FeedScrollController superChatScrollController;
 
     /// <summary>
-    /// 初始化离线预览样本并将弹幕列表接入与正式房间相同的滚动控制器。
+    /// 初始化离线预览样本并连接与正式房间相同的滚动行为。
     /// </summary>
     public DanmuStylePreviewWindow()
     {
         InitializeComponent();
         WindowChrome.AttachFrame(this);
         DataContext = viewModel;
-        scrollController = new(
-            this.FindControl<ScrollViewer>("DanmuScrollViewer")!,
-            this.FindControl<ItemsControl>("DanmuItemsControl")!);
-        scrollController.Attach(viewModel.DanmuItems);
+        danmuScrollController = new(DanmuScrollViewer, DanmuItemsControl);
+        danmuScrollController.Attach(viewModel.DanmuItems);
+        superChatScrollController = new(SuperChatListBox);
+        superChatScrollController.Attach(viewModel.SuperChats);
         Closed += (_, _) =>
         {
-            scrollController.Dispose();
+            danmuScrollController.Dispose();
+            superChatScrollController.Dispose();
             viewModel.Dispose();
         };
         Opened += (_, _) =>

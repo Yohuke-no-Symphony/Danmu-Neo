@@ -95,7 +95,7 @@ public class DanmuStylePreviewViewModelTests
 
         viewModel.AddDanmu();
 
-        var item = viewModel.DanmuItems[0];
+        var item = viewModel.DanmuItems[^1];
         Assert.Equal("测试用户", item.UserName);
         Assert.Equal("空内容样式测试", item.Content);
         Assert.Equal("已转发", item.Status);
@@ -119,8 +119,8 @@ public class DanmuStylePreviewViewModelTests
 
         viewModel.AddDanmu();
 
-        Assert.False(viewModel.DanmuItems[0].HasMedal);
-        Assert.Empty(viewModel.DanmuItems[0].MedalText);
+        Assert.False(viewModel.DanmuItems[^1].HasMedal);
+        Assert.Empty(viewModel.DanmuItems[^1].MedalText);
         Assert.True(viewModel.MedalLevel >= 0);
     }
 
@@ -142,7 +142,7 @@ public class DanmuStylePreviewViewModelTests
 
         viewModel.AddDanmuBatch();
 
-        var newItems = viewModel.DanmuItems.Take(viewModel.DanmuItems.Count - existingItems.Length).ToArray();
+        var newItems = viewModel.DanmuItems.Skip(existingItems.Length).ToArray();
         Assert.True(newItems.Length >= 50);
         Assert.Equal(newItems.Length, newItems.Select(item => item.Content).Distinct().Count());
         Assert.All(newItems, item =>
@@ -152,8 +152,8 @@ public class DanmuStylePreviewViewModelTests
             Assert.Equal("肉肉 12", item.MedalText);
             Assert.Equal("已转发", item.Status);
         });
-        Assert.Equal(existingItems, viewModel.DanmuItems.Skip(newItems.Length));
-        Assert.True(newItems[0].Time >= newItems[^1].Time);
+        Assert.Equal(existingItems, viewModel.DanmuItems.Take(existingItems.Length));
+        Assert.True(newItems[0].Time <= newItems[^1].Time);
     }
 
     /// <summary>
@@ -171,7 +171,7 @@ public class DanmuStylePreviewViewModelTests
 
         viewModel.AddSuperChat();
 
-        var item = viewModel.SuperChats[0];
+        var item = viewModel.SuperChats[^1];
         Assert.Equal("1000 电池", item.PriceText);
         Assert.Equal(Color.Parse("#123456"), item.BorderColor);
         Assert.Equal(LivePaidEventKind.SuperChat, item.Kind);
@@ -194,7 +194,7 @@ public class DanmuStylePreviewViewModelTests
 
         viewModel.AddGuardPurchase();
 
-        var item = viewModel.SuperChats[0];
+        var item = viewModel.SuperChats[^1];
         Assert.Equal(LivePaidEventKind.GuardPurchase, item.Kind);
         Assert.Equal("上舰用户", item.UserName);
         Assert.Equal(levelName, item.GuardLevelName);

@@ -12,6 +12,7 @@ namespace Yohuke.DanmuNeo.Views.Components;
 /// </summary>
 public partial class SuperChatPanelView : WorkbenchRoomPanel
 {
+    private readonly FeedScrollController scrollController;
     private readonly WorkbenchFeedInteraction interactions = null!;
 
     /// <summary>
@@ -26,33 +27,31 @@ public partial class SuperChatPanelView : WorkbenchRoomPanel
     /// <summary>创建供 XAML 加载器使用的 SC 面板。</summary>
     public SuperChatPanelView()
     {
-        ScrollToTopCommand = new RelayCommand(ScrollToTop, () => DataContext is LiveRoomTabViewModel);
+        ScrollToLatestCommand = new RelayCommand(ScrollToLatest, () => DataContext is LiveRoomTabViewModel);
         InitializeComponent();
+        scrollController = new(SuperChatListBox);
     }
 
-    /// <summary>将当前房间的 SC 和上舰记录列表滚回顶部。</summary>
-    public IRelayCommand ScrollToTopCommand { get; }
+    /// <summary>回到最新 SC 或上舰记录并恢复自动跟随的界面命令。</summary>
+    public IRelayCommand ScrollToLatestCommand { get; }
 
-    /// <summary>通过列表原生滚动接口回到最新记录，保留选中项。</summary>
-    public void ScrollToTop()
+    /// <summary>结束历史翻阅并回到最新 SC 或上舰记录。</summary>
+    public void ScrollToLatest()
     {
-        SuperChatListBox.ScrollIntoView(0);
-
-        if (SuperChatListBox.Scroll is { } scroll)
-        {
-            scroll.Offset = new(scroll.Offset.X, 0);
-        }
+        scrollController.ScrollToLatest();
     }
 
     /// <inheritdoc/>
     protected override void OnCurrentRoomChanged(LiveRoomTabViewModel? oldRoom, LiveRoomTabViewModel? newRoom)
     {
-        ScrollToTopCommand.NotifyCanExecuteChanged();
+        scrollController.Attach(newRoom?.SuperChats);
+        ScrollToLatestCommand.NotifyCanExecuteChanged();
     }
 
     /// <inheritdoc/>
     protected override void DisposePanel()
     {
+        scrollController.Dispose();
         interactions?.Dispose();
     }
 

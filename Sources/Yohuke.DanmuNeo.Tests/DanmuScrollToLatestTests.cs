@@ -6,6 +6,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Lucide.Avalonia;
 using Yohuke.DanmuNeo.I18n;
 using Yohuke.DanmuNeo.Layouts;
 using Yohuke.DanmuNeo.Services;
@@ -16,10 +17,10 @@ using Yohuke.DanmuNeo.Windowing;
 namespace Yohuke.DanmuNeo.Tests;
 
 /// <summary>
-/// 验证弹幕标题栏回顶按钮、阅读锚点复位和可配置快捷键。
+/// 验证弹幕标题栏回到最新按钮、阅读锚点复位和可配置快捷键。
 /// </summary>
 [Collection(AvaloniaDispatcherTestCollection.NAME)]
-public class DanmuScrollToTopTests
+public class DanmuScrollToLatestTests
 {
     /// <summary>
     /// 停靠和浮动面板的标题栏按钮均撤销排队的阅读定位，并恢复最新弹幕跟随。
@@ -29,7 +30,7 @@ public class DanmuScrollToTopTests
     [InlineData(false, true)]
     [InlineData(true, false)]
     [InlineData(true, true)]
-    public async Task HeaderButtonReturnsToTopAndResumesFollowing(bool floating, bool compact)
+    public async Task HeaderButtonReturnsToLatestAndResumesFollowing(bool floating, bool compact)
     {
         using var fixture = new LiveRoomFeedViewTestContext();
         fixture.ViewModel.IsCompactDanmuDisplay = compact;
@@ -57,31 +58,32 @@ public class DanmuScrollToTopTests
             Assert.NotNull(chrome);
             Assert.Same(workbench.Layouts.PanelAdapters[WorkbenchPanelIds.DANMU].Owner, chrome.DataContext);
             Assert.True(button.IsEffectivelyVisible);
-            Assert.Same(workbench.Panels.Danmu.ScrollToTopCommand, button.Command);
+            Assert.Same(workbench.Panels.Danmu.ScrollToLatestCommand, button.Command);
             Assert.True(button.IsEffectivelyEnabled);
             Assert.Equal(22, button.Bounds.Width);
             Assert.Equal(22, button.Bounds.Height);
-            var icon = Assert.IsAssignableFrom<Control>(button.Content);
+            var icon = Assert.IsType<LucideIcon>(button.Content);
+            Assert.Equal(LucideIconKind.ArrowDownToLine, icon.Kind);
             Assert.InRange(icon.Bounds.Width, 16, button.Bounds.Width);
             Assert.InRange(icon.Bounds.Height, 16, button.Bounds.Height);
 
             scroll.Offset = new(0, 180);
             PumpLayout(host);
-            Assert.True(scroll.Offset.Y > 1);
+            Assert.InRange(scroll.Offset.Y, 0, scroll.ScrollBarMaximum.Y - 1);
             fixture.Room.AddDanmu(new() { RoomId = "100", Content = new string('长', 180) });
             ClickButton(host, button);
             PumpLayout(host);
 
-            Assert.Equal(0, scroll.Offset.Y);
-            fixture.Room.AddDanmu(new() { RoomId = "100", Content = "回顶后继续跟随最新弹幕" });
+            Assert.Equal(scroll.ScrollBarMaximum.Y, scroll.Offset.Y, 0.5);
+            fixture.Room.AddDanmu(new() { RoomId = "100", Content = "回到最新后继续跟随最新弹幕" });
             PumpLayout(host);
-            Assert.Equal(0, scroll.Offset.Y);
+            Assert.Equal(scroll.ScrollBarMaximum.Y, scroll.Offset.Y, 0.5);
 
             scroll.Offset = new(0, 180);
             PumpLayout(host);
             fixture.Room.AddDanmu(new() { RoomId = "100", Content = "再次翻阅时保留阅读位置" });
             PumpLayout(host);
-            Assert.True(scroll.Offset.Y > 1);
+            Assert.InRange(scroll.Offset.Y, 0, scroll.ScrollBarMaximum.Y - 1);
 
             fixture.ViewModel.SelectedWorkspace!.SelectedRoom = null;
             PumpLayout(host);
@@ -116,7 +118,7 @@ public class DanmuScrollToTopTests
             workbench.Layouts.ShowPanel(WorkbenchPanelIds.HISTORY);
             PumpLayout(main);
             Assert.DoesNotContain(main.GetVisualDescendants().OfType<Button>(),
-                button => button.Name == "DanmuScrollToTopButton" && button.IsEffectivelyVisible);
+                button => button.Name == "DanmuScrollToLatestButton" && button.IsEffectivelyVisible);
 
             workbench.Layouts.ShowPanel(WorkbenchPanelIds.DANMU);
             PumpLayout(main);
@@ -129,12 +131,12 @@ public class DanmuScrollToTopTests
             var scroll = workbench.Panels.Danmu.FindControl<ScrollViewer>("DanmuScrollViewer")!;
             scroll.Offset = new(0, 180);
             PumpLayout(floating);
-            Assert.True(scroll.Offset.Y > 1);
+            Assert.InRange(scroll.Offset.Y, 0, scroll.ScrollBarMaximum.Y - 1);
 
             ClickButton(floating, button);
             PumpLayout(floating);
 
-            Assert.Equal(0, scroll.Offset.Y);
+            Assert.Equal(scroll.ScrollBarMaximum.Y, scroll.Offset.Y, 0.5);
             Assert.True(workbench.Layouts.IsVisible(WorkbenchPanelIds.DANMU));
         }
         finally
@@ -144,12 +146,12 @@ public class DanmuScrollToTopTests
     }
 
     /// <summary>
-    /// 默认快捷键在主窗及输入浮窗内均可回顶，不改变同传草稿、光标与输入焦点。
+    /// 默认快捷键在主窗及输入浮窗内均可回到最新，不改变同传草稿、光标与输入焦点。
     /// </summary>
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task ShortcutReturnsToTopFromComposerWithoutChangingDraft(bool floatingComposer)
+    public async Task ShortcutReturnsToLatestFromComposerWithoutChangingDraft(bool floatingComposer)
     {
         using var fixture = new LiveRoomFeedViewTestContext();
         PopulateDanmu(fixture.Room);
@@ -179,7 +181,7 @@ public class DanmuScrollToTopTests
             var scroll = workbench.Panels.Danmu.FindControl<ScrollViewer>("DanmuScrollViewer")!;
             scroll.Offset = new(0, 180);
             PumpLayout(main, host);
-            Assert.True(scroll.Offset.Y > 1);
+            Assert.InRange(scroll.Offset.Y, 0, scroll.ScrollBarMaximum.Y - 1);
             Assert.True(input.IsFocused);
             fixture.Room.AddDanmu(new() { RoomId = "100", Content = "快捷键之前排队的锚点定位" });
 
@@ -187,13 +189,13 @@ public class DanmuScrollToTopTests
             host.KeyReleaseQwerty(PhysicalKey.Home, RawInputModifiers.Alt);
             PumpLayout(main, host);
 
-            Assert.Equal(0, scroll.Offset.Y);
+            Assert.Equal(scroll.ScrollBarMaximum.Y, scroll.Offset.Y, 0.5);
             Assert.Equal("保留同传草稿和输入位置", input.Text);
             Assert.Equal(3, input.CaretIndex);
             Assert.True(input.IsFocused);
-            fixture.Room.AddDanmu(new() { RoomId = "100", Content = "快捷键回顶后跟随" });
+            fixture.Room.AddDanmu(new() { RoomId = "100", Content = "快捷键回到最新后跟随" });
             PumpLayout(main, host);
-            Assert.Equal(0, scroll.Offset.Y);
+            Assert.Equal(scroll.ScrollBarMaximum.Y, scroll.Offset.Y, 0.5);
         }
         finally
         {
@@ -202,7 +204,7 @@ public class DanmuScrollToTopTests
     }
 
     /// <summary>
-    /// 回顶快捷键遵循改绑、禁用和冲突检测，并在快捷键录制期间保持停用。
+    /// 回到最新快捷键遵循改绑、禁用和冲突检测，并在快捷键录制期间保持停用。
     /// </summary>
     [AvaloniaFact]
     public async Task ShortcutHonorsRebindingDisabledConflictingAndRecordingStates()
@@ -229,13 +231,13 @@ public class DanmuScrollToTopTests
             main.KeyPressQwerty(PhysicalKey.Home, RawInputModifiers.Alt);
             main.KeyReleaseQwerty(PhysicalKey.Home, RawInputModifiers.Alt);
             PumpLayout(main);
-            Assert.True(scroll.Offset.Y > 1);
+            Assert.InRange(scroll.Offset.Y, 0, scroll.ScrollBarMaximum.Y - 1);
 
             var modifiers = RawInputModifiers.Control | RawInputModifiers.Shift;
             main.KeyPressQwerty(PhysicalKey.T, modifiers);
             main.KeyReleaseQwerty(PhysicalKey.T, modifiers);
             PumpLayout(main);
-            Assert.Equal(0, scroll.Offset.Y);
+            Assert.Equal(scroll.ScrollBarMaximum.Y, scroll.Offset.Y, 0.5);
 
             scroll.Offset = new(0, 180);
             PumpLayout(main);
@@ -243,7 +245,7 @@ public class DanmuScrollToTopTests
             main.KeyPressQwerty(PhysicalKey.T, modifiers);
             main.KeyReleaseQwerty(PhysicalKey.T, modifiers);
             PumpLayout(main);
-            Assert.True(scroll.Offset.Y > 1);
+            Assert.InRange(scroll.Offset.Y, 0, scroll.ScrollBarMaximum.Y - 1);
 
             binding.IsEnabled = true;
             var conflicting = fixture.ViewModel.Settings.ShortcutBindings.Single(item =>
@@ -252,7 +254,7 @@ public class DanmuScrollToTopTests
             main.KeyPressQwerty(PhysicalKey.T, modifiers);
             main.KeyReleaseQwerty(PhysicalKey.T, modifiers);
             PumpLayout(main);
-            Assert.True(scroll.Offset.Y > 1);
+            Assert.InRange(scroll.Offset.Y, 0, scroll.ScrollBarMaximum.Y - 1);
 
             conflicting.IsEnabled = false;
             var recording = fixture.ViewModel.ShortcutBindingGroups.SelectMany(group => group.Bindings).First();
@@ -260,7 +262,7 @@ public class DanmuScrollToTopTests
             main.KeyPressQwerty(PhysicalKey.T, modifiers);
             main.KeyReleaseQwerty(PhysicalKey.T, modifiers);
             PumpLayout(main);
-            Assert.True(scroll.Offset.Y > 1);
+            Assert.InRange(scroll.Offset.Y, 0, scroll.ScrollBarMaximum.Y - 1);
             fixture.ViewModel.CancelShortcutRecording();
         }
         finally
@@ -298,7 +300,7 @@ public class DanmuScrollToTopTests
             PumpLayout(main, host);
             var button = GetHeaderButton(host);
             var group = fixture.ViewModel.ShortcutBindingGroups.Single(item =>
-                item.Bindings.Any(binding => binding.ActionKey == ShortcutActionKeys.DANMU_SCROLL_TO_TOP));
+                item.Bindings.Any(binding => binding.ActionKey == ShortcutActionKeys.DANMU_SCROLL_TO_LATEST));
             var binding = Assert.Single(group.Bindings);
 
             foreach (var languageId in new[] { "zh-CN", "en-US" })
@@ -307,11 +309,11 @@ public class DanmuScrollToTopTests
                 PumpLayout(main, host);
 
                 Assert.Same(button, GetHeaderButton(host));
-                Assert.Equal(languageId == "zh-CN" ? "回到顶部" : "Back to top", ToolTip.GetTip(button));
+                Assert.Equal(languageId == "zh-CN" ? "回到最新" : "Go to latest", ToolTip.GetTip(button));
                 Assert.Equal(ToolTip.GetTip(button), AutomationProperties.GetName(button));
                 Assert.Equal(languageId == "zh-CN" ? "弹幕" : "Danmu", group.Name);
-                Assert.Equal(languageId == "zh-CN" ? "弹幕回到顶部" : "Scroll danmu to top", binding.Name);
-                Assert.Same(workbench.Panels.Danmu.ScrollToTopCommand, button.Command);
+                Assert.Equal(languageId == "zh-CN" ? "弹幕回到最新" : "Go to latest danmu", binding.Name);
+                Assert.Same(workbench.Panels.Danmu.ScrollToLatestCommand, button.Command);
             }
         }
         finally
@@ -336,7 +338,7 @@ public class DanmuScrollToTopTests
     private static Button GetHeaderButton(Window window)
     {
         return Assert.Single(window.GetVisualDescendants().OfType<Button>(),
-            button => button.Name == "DanmuScrollToTopButton" && button.IsEffectivelyVisible);
+            button => button.Name == "DanmuScrollToLatestButton" && button.IsEffectivelyVisible);
     }
 
     private static void ClickButton(Window window, Button button)
