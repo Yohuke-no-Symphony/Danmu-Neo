@@ -14,6 +14,7 @@ public class ToolPanelLayoutMigrationTests
     [InlineData(4)]
     [InlineData(5)]
     [InlineData(6)]
+    [InlineData(7)]
     public void HistoricalLayoutsOnlyGainHiddenToolPanels(int sourceVersion)
     {
         var members = GetHistoricalMembers(sourceVersion);
@@ -46,7 +47,7 @@ public class ToolPanelLayoutMigrationTests
         Assert.Equal(JsonSerializer.Serialize(snapshot.FloatingWindows), JsonSerializer.Serialize(upgraded.CurrentLayout.FloatingWindows));
         Assert.Equal(snapshot.FocusedPanelId, upgraded.CurrentLayout.FocusedPanelId);
         Assert.Equal(WorkbenchPanelIds.All.Except(members), upgraded.CurrentLayout.HiddenPanelIds);
-        Assert.Contains("gift", upgraded.CurrentLayout.HiddenPanelIds);
+        Assert.Contains("redPocket", upgraded.CurrentLayout.HiddenPanelIds);
         var preset = Assert.Single(upgraded.UserPresets);
         Assert.Equal("我的布局", preset.Name);
         Assert.Equal(upgraded.CurrentLayout.HiddenPanelIds, preset.Layout.HiddenPanelIds);
@@ -67,12 +68,14 @@ public class ToolPanelLayoutMigrationTests
     [InlineData(5, false)]
     [InlineData(6, true)]
     [InlineData(6, false)]
+    [InlineData(7, true)]
+    [InlineData(7, false)]
     public void MigrationRejectsInvalidHistoricalMembership(int version, bool futureMember)
     {
         var members = GetHistoricalMembers(version).ToList();
         if (futureMember)
         {
-            members.Add("gift");
+            members.Add("redPocket");
         }
         else
         {
@@ -88,17 +91,20 @@ public class ToolPanelLayoutMigrationTests
     }
 
     /// <summary>当前版本再次升级不会新增重复的隐藏面板或改变序列化内容。</summary>
-    [Fact]
-    public void UpgradingAnAlreadyUpgradedLayoutIsIdempotent()
+    [Theory]
+    [InlineData(6)]
+    [InlineData(7)]
+    public void UpgradingAnAlreadyUpgradedLayoutIsIdempotent(int sourceVersion)
     {
+        var members = GetHistoricalMembers(sourceVersion);
         var snapshot = new WorkspaceLayoutSnapshot
         {
-            Main = new() { PanelIds = [.. GetHistoricalMembers(6)], ActivePanelId = "history" },
+            Main = new() { PanelIds = [.. members], ActivePanelId = "history" },
             FocusedPanelId = "history"
         };
         var old = new WorkspaceLayoutFile
         {
-            Version = 6,
+            Version = sourceVersion,
             CurrentPresetId = "custom",
             CurrentLayout = snapshot,
             UserPresets = [new() { Id = "custom", Name = "旧版本布局", Layout = snapshot }]
@@ -111,12 +117,13 @@ public class ToolPanelLayoutMigrationTests
 
         Assert.Same(upgraded, repeated);
         Assert.Equal(WorkspaceLayoutFile.CURRENT_VERSION, repeated.Version);
-        Assert.Equal(["gift"], restored.CurrentLayout.HiddenPanelIds);
-        Assert.Equal(["gift"], Assert.Single(restored.UserPresets).Layout.HiddenPanelIds);
+        var additions = WorkbenchPanelIds.All.Except(members).ToArray();
+        Assert.Equal(additions, restored.CurrentLayout.HiddenPanelIds);
+        Assert.Equal(additions, Assert.Single(restored.UserPresets).Layout.HiddenPanelIds);
         Assert.Equal(encoded, WorkspaceLayoutSerializer.Serialize(restored));
     }
 
-    /// <summary>历史成员集合保持冻结，旧版校验会拒绝新增的礼物面板。</summary>
+    /// <summary>历史成员集合保持冻结，旧版校验会拒绝新增的红包面板。</summary>
     [Theory]
     [InlineData(1, 8)]
     [InlineData(2, 9)]
@@ -124,6 +131,7 @@ public class ToolPanelLayoutMigrationTests
     [InlineData(4, 11)]
     [InlineData(5, 12)]
     [InlineData(6, 13)]
+    [InlineData(7, 14)]
     public void HistoricalVersionValidationUsesFrozenPanelMembership(int version, int count)
     {
         var members = GetHistoricalMembers(version);
@@ -136,7 +144,7 @@ public class ToolPanelLayoutMigrationTests
         {
             Assert.True(WorkspaceLayoutValidator.TryValidate(snapshot, out error, legacy: true), error);
         }
-        snapshot.HiddenPanelIds.Add(WorkbenchPanelIds.GIFT);
+        snapshot.HiddenPanelIds.Add(WorkbenchPanelIds.RED_POCKET);
         Assert.False(WorkspaceLayoutValidator.TryValidate(snapshot, out _, out _, version));
     }
 
@@ -199,6 +207,7 @@ public class ToolPanelLayoutMigrationTests
             4 => ["workspace", "livePlayer", "composer", "superChat", "danmu", "history", "lyrics", "forwarding", "log", "moderation", "accountMedals"],
             5 => ["workspace", "livePlayer", "composer", "superChat", "danmu", "history", "lyrics", "forwarding", "log", "moderation", "accountMedals", "liveCaptures"],
             6 => ["workspace", "livePlayer", "composer", "superChat", "danmu", "history", "lyrics", "forwarding", "log", "moderation", "accountMedals", "liveCaptures", "liveMarker"],
+            7 => [.. GetHistoricalMembers(6), "gift"],
             _ => throw new ArgumentOutOfRangeException(nameof(version))
         };
     }

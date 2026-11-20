@@ -48,7 +48,8 @@ public class WorkspaceLayoutPresetsTests
         Assert.Equal([WorkbenchPanelIds.SUPER_CHAT], right.Children[0].PanelIds);
         Assert.Equal(new[]
         {
-            WorkbenchPanelIds.DANMU, WorkbenchPanelIds.GIFT, WorkbenchPanelIds.HISTORY, WorkbenchPanelIds.LIVE_MARKER,
+            WorkbenchPanelIds.DANMU, WorkbenchPanelIds.GIFT, WorkbenchPanelIds.RED_POCKET,
+            WorkbenchPanelIds.HISTORY, WorkbenchPanelIds.LIVE_MARKER,
             WorkbenchPanelIds.LYRICS, WorkbenchPanelIds.FORWARDING, WorkbenchPanelIds.LOG, WorkbenchPanelIds.MODERATION, WorkbenchPanelIds.ACCOUNT_MEDALS
         }, right.Children[1].PanelIds);
         Assert.Equal(WorkbenchPanelIds.DANMU, right.Children[1].ActivePanelId);
@@ -72,7 +73,7 @@ public class WorkspaceLayoutPresetsTests
         Assert.Equal([WorkbenchPanelIds.HISTORY, WorkbenchPanelIds.LIVE_MARKER, WorkbenchPanelIds.LOG,
             WorkbenchPanelIds.MODERATION, WorkbenchPanelIds.ACCOUNT_MEDALS], right.Children[2].PanelIds);
         Assert.Equal(new[] { WorkbenchPanelIds.LYRICS, WorkbenchPanelIds.FORWARDING, WorkbenchPanelIds.LIVE_CAPTURES,
-            WorkbenchPanelIds.GIFT }, layout.HiddenPanelIds);
+            WorkbenchPanelIds.GIFT, WorkbenchPanelIds.RED_POCKET }, layout.HiddenPanelIds);
     }
 
     /// <summary>
@@ -95,7 +96,7 @@ public class WorkspaceLayoutPresetsTests
             WorkbenchPanelIds.MODERATION, WorkbenchPanelIds.ACCOUNT_MEDALS
         }, right.Children[1].PanelIds);
         Assert.Equal(WorkbenchPanelIds.DANMU, right.Children[1].ActivePanelId);
-        Assert.Equal([WorkbenchPanelIds.LIVE_CAPTURES, WorkbenchPanelIds.GIFT], layout.HiddenPanelIds);
+        Assert.Equal([WorkbenchPanelIds.LIVE_CAPTURES, WorkbenchPanelIds.GIFT, WorkbenchPanelIds.RED_POCKET], layout.HiddenPanelIds);
     }
 
     /// <summary>

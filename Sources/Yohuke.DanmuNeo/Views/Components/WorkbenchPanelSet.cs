@@ -25,6 +25,7 @@ public sealed partial class WorkbenchPanelSet : IDisposable
         SuperChat = new(context, interactions);
         Danmu = new(context, interactions);
         Gift = new(context, interactions);
+        RedPocket = new(context, interactions);
         History = new(context);
         Lyrics = new(context);
         Forwarding = new(context);
@@ -39,6 +40,7 @@ public sealed partial class WorkbenchPanelSet : IDisposable
             [WorkbenchPanelIds.SUPER_CHAT] = SuperChat,
             [WorkbenchPanelIds.DANMU] = Danmu,
             [WorkbenchPanelIds.GIFT] = Gift,
+            [WorkbenchPanelIds.RED_POCKET] = RedPocket,
             [WorkbenchPanelIds.HISTORY] = History,
             [WorkbenchPanelIds.LYRICS] = Lyrics,
             [WorkbenchPanelIds.FORWARDING] = Forwarding,
@@ -66,6 +68,9 @@ public sealed partial class WorkbenchPanelSet : IDisposable
 
     /// <summary>礼物面板。</summary>
     public GiftPanelView Gift { get; }
+
+    /// <summary>红包面板。</summary>
+    public RedPocketPanelView RedPocket { get; }
 
     /// <summary>历史面板。</summary>
     public TranslateHistoryPanelView History { get; }

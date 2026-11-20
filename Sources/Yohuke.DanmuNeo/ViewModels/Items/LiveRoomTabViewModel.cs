@@ -76,6 +76,7 @@ public partial class LiveRoomTabViewModel : ViewModelBase, IDisposable
         State = state;
         LiveMarker = new(state);
         GiftItems = new(giftItems);
+        RedPocketItems = new(redPocketItems);
         inputDraft = state.InputDraft;
         lyricInput = state.LyricText;
         translatedLyricInput = state.TranslatedLyricText;
@@ -109,6 +110,9 @@ public partial class LiveRoomTabViewModel : ViewModelBase, IDisposable
 
     /// <summary>当前直播间收到的金币礼物记录。</summary>
     public ReadOnlyObservableCollection<GiftFeedItem> GiftItems { get; }
+
+    /// <summary>当前直播间收到的红包记录。</summary>
+    public ReadOnlyObservableCollection<RedPocketFeedItem> RedPocketItems { get; }
 
     /// <summary>
     /// SC 与上舰记录。

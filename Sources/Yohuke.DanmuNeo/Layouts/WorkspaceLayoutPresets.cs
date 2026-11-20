@@ -52,7 +52,8 @@ internal static class WorkspaceLayoutPresets
         {
             DEFAULT => Split(WorkspaceLayoutOrientation.Vertical, 0.3,
                 Tabs(0.3, WorkbenchPanelIds.SUPER_CHAT),
-                Tabs(0.7, WorkbenchPanelIds.DANMU, WorkbenchPanelIds.GIFT, WorkbenchPanelIds.HISTORY, WorkbenchPanelIds.LIVE_MARKER,
+                Tabs(0.7, WorkbenchPanelIds.DANMU, WorkbenchPanelIds.GIFT, WorkbenchPanelIds.RED_POCKET,
+                    WorkbenchPanelIds.HISTORY, WorkbenchPanelIds.LIVE_MARKER,
                     WorkbenchPanelIds.LYRICS, WorkbenchPanelIds.FORWARDING, WorkbenchPanelIds.LOG, WorkbenchPanelIds.MODERATION, WorkbenchPanelIds.ACCOUNT_MEDALS)),
             TRANSLATION => Split(WorkspaceLayoutOrientation.Vertical, 0.3,
                 Tabs(0.25, WorkbenchPanelIds.SUPER_CHAT),
@@ -77,8 +78,9 @@ internal static class WorkspaceLayoutPresets
             HiddenPanelIds = presetId switch
             {
                 DEFAULT => [WorkbenchPanelIds.LIVE_CAPTURES],
-                TRANSLATION => [WorkbenchPanelIds.LYRICS, WorkbenchPanelIds.FORWARDING, WorkbenchPanelIds.LIVE_CAPTURES, WorkbenchPanelIds.GIFT],
-                _ => [WorkbenchPanelIds.LIVE_CAPTURES, WorkbenchPanelIds.GIFT]
+                TRANSLATION => [WorkbenchPanelIds.LYRICS, WorkbenchPanelIds.FORWARDING, WorkbenchPanelIds.LIVE_CAPTURES,
+                    WorkbenchPanelIds.GIFT, WorkbenchPanelIds.RED_POCKET],
+                _ => [WorkbenchPanelIds.LIVE_CAPTURES, WorkbenchPanelIds.GIFT, WorkbenchPanelIds.RED_POCKET]
             },
             FocusedPanelId = WorkbenchPanelIds.COMPOSER
         };

@@ -1,13 +1,13 @@
-<components:WorkbenchRoomPanel xmlns="https://github.com/avaloniaui"
-                               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                               xmlns:workspace="clr-namespace:Yohuke.DanmuNeo.Models.Workspace"
-                               xmlns:components="clr-namespace:Yohuke.DanmuNeo.Views.Components"
-                               xmlns:items="clr-namespace:Yohuke.DanmuNeo.ViewModels.Items"
-                               x:Class="Yohuke.DanmuNeo.Views.Components.GiftPanelView"
-                               x:DataType="items:LiveRoomTabViewModel"
-                               x:CompileBindings="True"
-                               x:Name="Root">
-    <components:WorkbenchRoomPanel.HeaderActionsTemplate>
+<components:WorkbenchFeedListPanel xmlns="https://github.com/avaloniaui"
+                                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                                   xmlns:workspace="clr-namespace:Yohuke.DanmuNeo.Models.Workspace"
+                                   xmlns:components="clr-namespace:Yohuke.DanmuNeo.Views.Components"
+                                   xmlns:items="clr-namespace:Yohuke.DanmuNeo.ViewModels.Items"
+                                   x:Class="Yohuke.DanmuNeo.Views.Components.GiftPanelView"
+                                   x:DataType="items:LiveRoomTabViewModel"
+                                   x:CompileBindings="True"
+                                   x:Name="Root">
+    <components:WorkbenchFeedListPanel.HeaderActionsTemplate>
         <DataTemplate x:DataType="components:GiftPanelView">
             <Button Classes="dockChromeButton"
                     Foreground="{DynamicResource AppMutedTextBrush}"
@@ -17,7 +17,7 @@
                 <LucideIcon Kind="ArrowDownToLine" Width="16" Height="16" />
             </Button>
         </DataTemplate>
-    </components:WorkbenchRoomPanel.HeaderActionsTemplate>
+    </components:WorkbenchFeedListPanel.HeaderActionsTemplate>
     <Border Padding="{StaticResource WorkbenchPanelPadding}">
         <Grid Classes.compactDanmu="{Binding #Root.Context.Application.IsCompactDanmuDisplay}">
             <ListBox x:Name="GiftListBox"
@@ -30,8 +30,8 @@
                                 HorizontalAlignment="Stretch"
                                 HorizontalContentAlignment="Stretch"
                                 Padding="0" Margin="0"
-                                ContextRequested="Gift_OnContextRequested"
-                                Click="Gift_OnClick">
+                                ContextRequested="Message_OnContextRequested"
+                                Click="Message_OnClick">
                             <Border BorderThickness="2" CornerRadius="6" Padding="6,3">
                                 <Border.BorderBrush>
                                     <SolidColorBrush Color="{Binding BorderColor}" />
@@ -69,4 +69,4 @@
             </ListBox>
         </Grid>
     </Border>
-</components:WorkbenchRoomPanel>
+</components:WorkbenchFeedListPanel>

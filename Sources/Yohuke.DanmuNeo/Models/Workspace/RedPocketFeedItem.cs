@@ -3,17 +3,22 @@ using Yohuke.DanmuNeo.I18n;
 
 namespace Yohuke.DanmuNeo.Models.Workspace;
 
-/// <summary>在弹幕列表中原位合并红包内容和开奖状态的摘要。</summary>
+/// <summary>在红包列表中原位合并红包内容和开奖状态的摘要。</summary>
 public sealed class RedPocketFeedItem : DanmuFeedItem
 {
     private const long MAX_UNIX_TIMESTAMP_SECONDS = 253402300799;
     private BilibiliRedPocketMessage message;
+    private string summaryText = "";
+    private string valueText = "";
 
     /// <summary>红包抽奖 ID。</summary>
     public long LotId => message.RedPocket.LotId;
 
-    /// <inheritdoc/>
-    public override bool IsRedPocket => true;
+    /// <summary>红包当前的开奖状态。</summary>
+    public string SummaryText => summaryText;
+
+    /// <summary>根据红包类型展示金额、电池或亲密度。</summary>
+    public string ValueText => valueText;
 
     internal RedPocketFeedItem(BilibiliRedPocketMessage message)
     {
@@ -64,9 +69,10 @@ public sealed class RedPocketFeedItem : DanmuFeedItem
         UserUid = message.RedPocket.IsMystery == true || message.RedPocket.SenderUid <= 0
             ? ""
             : message.RedPocket.SenderUid.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        var value = FormatValue();
-        Content = Localization.Format(message.IsDrawn ? "Room.RedPocket.DrawnContent" : "Room.RedPocket.WaitingContent",
-            value.Length > 0 ? $" · {value}" : "");
+        var summaryKey = message.IsDrawn ? "Room.RedPocket.DrawnContent" : "Room.RedPocket.WaitingContent";
+        SetProperty(ref summaryText, Localization.Get(summaryKey), nameof(SummaryText));
+        SetProperty(ref valueText, FormatValue(), nameof(ValueText));
+        Content = ValueText.Length > 0 ? $"{SummaryText} · {ValueText}" : SummaryText;
     }
 
     private string FormatValue()

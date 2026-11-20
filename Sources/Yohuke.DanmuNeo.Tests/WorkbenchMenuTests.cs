@@ -238,9 +238,11 @@ public class WorkbenchMenuTests
         Assert.Equal($"layout:{context.Controller.CurrentPresetId}", Assert.Single(layouts, item => item.IsChecked).Id);
     }
 
-    /// <summary>在隐藏礼物的预设中，视图菜单会将礼物作为弹幕旁的独立标签打开。</summary>
-    [AvaloniaFact]
-    public async Task GiftMenuOpensHiddenPanelInDanmuDock()
+    /// <summary>视图菜单会将尚未停靠的礼物和红包作为弹幕旁的独立标签打开。</summary>
+    [AvaloniaTheory]
+    [InlineData(WorkbenchPanelIds.GIFT, "Workbench.Panel.Gift", LucideIconKind.Gift)]
+    [InlineData(WorkbenchPanelIds.RED_POCKET, "Workbench.Panel.RedPocket", LucideIconKind.Mail)]
+    public async Task EventPanelMenuOpensHiddenPanelInDanmuDock(string id, string titleKey, LucideIconKind icon)
     {
         await using var context = new WorkbenchLayoutTestContext(new()
         {
@@ -250,20 +252,19 @@ public class WorkbenchMenuTests
         using var catalog = new WorkbenchMenuCatalog(context.Controller, () => { }, () => { }, () => { },
             () => { }, () => { }, () => false);
         context.Show();
-        var id = WorkbenchPanelIds.GIFT;
         var entry = catalog.Entries.Single(group => group.Id == "views").Children!
             .Single(item => item.Id == $"panel:{id}");
-        Assert.Equal(Localization.Get("Workbench.Panel.Gift"), entry.Header);
-        Assert.Equal(LucideIconKind.Gift, entry.Icon);
+        Assert.Equal(Localization.Get(titleKey), entry.Header);
+        Assert.Equal(icon, entry.Icon);
         Assert.False(context.Controller.IsVisible(id));
 
         entry.Command!.Execute(null);
         context.Pump();
 
-        var gift = context.Controller.PanelAdapters[id];
+        var panel = context.Controller.PanelAdapters[id];
         var danmuDock = Assert.IsAssignableFrom<IDock>(context.Controller.PanelAdapters[WorkbenchPanelIds.DANMU].Owner);
-        Assert.Same(danmuDock, gift.Owner);
-        Assert.Same(gift, danmuDock.ActiveDockable);
+        Assert.Same(danmuDock, panel.Owner);
+        Assert.Same(panel, danmuDock.ActiveDockable);
     }
 
     /// <summary>直播记录使用独立图标和本地化标题，菜单可恢复隐藏面板并复用同一实例。</summary>

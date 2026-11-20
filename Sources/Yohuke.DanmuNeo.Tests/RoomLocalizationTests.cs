@@ -17,7 +17,7 @@ namespace Yohuke.DanmuNeo.Tests;
 public sealed class RoomLocalizationTests
 {
     /// <summary>
-    /// 切换语言刷新当前状态、选项和应用生成的礼物正文，同时保留用户草稿和规则。
+    /// 切换语言刷新当前状态、选项和应用生成的礼物与红包正文，同时保留用户草稿和规则。
     /// </summary>
     [AvaloniaFact]
     public void RoomSwitchPreservesDraftsRulesAndOptionInstances()
@@ -49,6 +49,13 @@ public sealed class RoomLocalizationTests
             RoomId = "100"
         });
         var gift = Assert.Single(room.GiftItems);
+        room.AddRedPocket(new()
+        {
+            RoomId = "100", RedPocket = new() { LotId = 1, Type = 3, TotalBattery = 200 }
+        });
+        var redPocket = Assert.Single(room.RedPocketItems);
+        Assert.Contains("等待开奖", redPocket.SummaryText);
+        Assert.Equal("2 电池", redPocket.ValueText);
         var originalConnectionStatus = room.ConnectionStatus;
         var originalRuleStatus = rule.StatusText;
         var originalUidStatus = rule.SenderUserNameDisplayText;
@@ -61,6 +68,8 @@ public sealed class RoomLocalizationTests
         Assert.NotEqual(originalRuleStatus, rule.StatusText);
         Assert.NotEqual(originalUidStatus, rule.SenderUserNameDisplayText);
         Assert.NotEqual(originalGiftContent, gift.Content);
+        Assert.Contains("Awaiting draw", redPocket.SummaryText);
+        Assert.Equal("2 batteries", redPocket.ValueText);
         Assert.NotEqual(originalModeText, options[0].DisplayName);
         Assert.Contains("用户礼物名", gift.Content);
         Assert.Equal("真实用户", gift.UserName);

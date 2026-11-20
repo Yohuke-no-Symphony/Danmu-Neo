@@ -2,7 +2,7 @@ namespace Yohuke.DanmuNeo.Layouts;
 
 internal sealed record WorkspaceLayoutFile
 {
-    internal const int CURRENT_VERSION = 7;
+    internal const int CURRENT_VERSION = 8;
 
     public int Version { get; init; } = CURRENT_VERSION;
     public string CurrentPresetId { get; init; } = WorkspaceLayoutPresets.DEFAULT;

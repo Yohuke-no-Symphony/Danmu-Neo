@@ -8,6 +8,7 @@ internal static class WorkbenchPanelIds
     internal const string SUPER_CHAT = "superChat";
     internal const string DANMU = "danmu";
     internal const string GIFT = "gift";
+    internal const string RED_POCKET = "redPocket";
     internal const string HISTORY = "history";
     internal const string LYRICS = "lyrics";
     internal const string FORWARDING = "forwarding";
@@ -50,6 +51,7 @@ internal static class WorkbenchPanelIds
     });
 
     private static readonly IReadOnlyList<string> VERSION_SEVEN = Array.AsReadOnly<string>([.. VERSION_SIX, GIFT]);
+    private static readonly IReadOnlyList<string> VERSION_EIGHT = Array.AsReadOnly<string>([.. VERSION_SEVEN, RED_POCKET]);
 
     internal static IReadOnlyList<string> All => ForVersion(WorkspaceLayoutFile.CURRENT_VERSION);
 
@@ -64,6 +66,7 @@ internal static class WorkbenchPanelIds
             5 => VERSION_FIVE,
             6 => VERSION_SIX,
             7 => VERSION_SEVEN,
+            8 => VERSION_EIGHT,
             _ => []
         };
     }

@@ -709,7 +709,7 @@ internal sealed class WorkbenchLayoutController : IAsyncDisposable
 
     private IToolDock FindReopenDock(string panelId)
     {
-        if (panelId == WorkbenchPanelIds.GIFT && IsVisible(WorkbenchPanelIds.DANMU) &&
+        if ((panelId is WorkbenchPanelIds.GIFT or WorkbenchPanelIds.RED_POCKET) && IsVisible(WorkbenchPanelIds.DANMU) &&
             panels[WorkbenchPanelIds.DANMU].Owner is IToolDock danmuDock)
         {
             return danmuDock;

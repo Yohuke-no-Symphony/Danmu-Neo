@@ -25,6 +25,7 @@ public class WorkbenchPanelTests
     [AvaloniaTheory]
     [InlineData(WorkbenchPanelIds.DANMU)]
     [InlineData(WorkbenchPanelIds.GIFT)]
+    [InlineData(WorkbenchPanelIds.RED_POCKET)]
     [InlineData(WorkbenchPanelIds.SUPER_CHAT)]
     [InlineData(WorkbenchPanelIds.HISTORY)]
     [InlineData(WorkbenchPanelIds.LYRICS)]
@@ -387,6 +388,56 @@ public class WorkbenchPanelTests
             {
                 Assert.InRange(control.Bounds.Right, 0, toolbar.Bounds.Width + 0.5);
             }
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    /// <summary>红包面板显示当前房间的发包人、开奖状态和价值。</summary>
+    [AvaloniaFact]
+    public void RedPocketPanelShowsOnlyTheSelectedRoomsRedPockets()
+    {
+        using var fixture = new LiveRoomFeedViewTestContext();
+        using var context = new WorkbenchContext(fixture.ViewModel);
+        using var panels = new WorkbenchPanelSet(context);
+        fixture.Room.AddRedPocket(new()
+        {
+            RoomId = "100", RedPocket = new() { LotId = 1, SenderUid = 42, SenderName = "发包人", TotalPrice = 2000 }
+        });
+        var panel = panels.RedPocket;
+        var list = panel.FindControl<ListBox>("RedPocketListBox")!;
+        var window = new Window { Width = 320, Height = 500, Content = panel };
+
+        try
+        {
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            window.UpdateLayout();
+            var item = Assert.Single(fixture.Room.RedPocketItems);
+            Assert.Same(item, Assert.Single(list.Items));
+            var button = FindMessageButton(panel);
+            var textBlocks = button.GetVisualDescendants().OfType<TextBlock>().Where(text => text.IsEffectivelyVisible).ToArray();
+            Assert.Contains(textBlocks, text => text.Text == "发包人");
+            var status = Assert.Single(textBlocks, text => text.Text?.Contains("等待开奖") == true);
+            Assert.Contains(textBlocks, text => text.Text == "￥2");
+
+            fixture.Room.AddRedPocket(new() { RoomId = "100", IsDrawn = true, RedPocket = new() { LotId = 1 } });
+            Dispatcher.UIThread.RunJobs();
+            Assert.Same(item, Assert.Single(list.Items));
+            Assert.Contains("已开奖", status.Text);
+            button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Assert.Contains("已开奖", fixture.Room.InputDraft);
+
+            var workspace = fixture.ViewModel.SelectedWorkspace!;
+            workspace.AddRoom("200", "第二直播间");
+            Dispatcher.UIThread.RunJobs();
+            Assert.Empty(list.Items);
+
+            workspace.SelectedRoom = fixture.Room;
+            Dispatcher.UIThread.RunJobs();
+            Assert.Same(item, Assert.Single(list.Items));
         }
         finally
         {

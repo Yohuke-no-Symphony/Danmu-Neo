@@ -89,29 +89,35 @@ public sealed class CoreReceptionPolicyTests
         Assert.Equal(suppliedColor, message.BorderColor);
     }
 
-    /// <summary>没有中奖名单的开奖通知也会原位更新摘要，后续等待通知不能使状态回退。</summary>
-    [Fact]
+    /// <summary>接收的红包仅进入独立列表，开奖原位更新且状态不会回退。</summary>
+    [AvaloniaFact]
     public void RedPocketDrawNotificationUpdatesTheExistingSummary()
     {
-        using var context = new RoomModerationTestContext();
-        context.Room.AddRedPocket(new()
+        var socket = new FakeLiveDanmuSocket { KeepRunning = true };
+        using var context = new RoomModerationTestContext(new SequenceLiveDanmuSocketFactory(socket));
+        context.Room.StartListening();
+        socket.EmitRedPocket(new()
         {
             RoomId = "100", Timestamp = 1800000000,
             RedPocket = new() { LotId = 1, SenderUid = 42, SenderName = "发包人", TotalPrice = 2000 }
         });
-        var item = Assert.Single(context.Room.DanmuItems.OfType<RedPocketFeedItem>());
-        context.Room.AddRedPocket(new()
+        Dispatcher.UIThread.RunJobs();
+        var item = Assert.Single(context.Room.RedPocketItems);
+        Assert.Contains("等待开奖", item.SummaryText);
+        socket.EmitRedPocket(new()
         {
             RoomId = "100", Timestamp = 1800000001, IsDrawn = true, RedPocket = new() { LotId = 1 }
         });
-        context.Room.AddRedPocket(new()
+        socket.EmitRedPocket(new()
         {
             RoomId = "100", Timestamp = 1800000002, RedPocket = new() { LotId = 1 }
         });
 
-        Assert.Same(item, Assert.Single(context.Room.DanmuItems.OfType<RedPocketFeedItem>()));
+        Dispatcher.UIThread.RunJobs();
+        Assert.Same(context.Item, Assert.Single(context.Room.DanmuItems));
+        Assert.Same(item, Assert.Single(context.Room.RedPocketItems));
         Assert.Equal("发包人", item.UserName);
-        Assert.Contains("已开奖", item.Content);
-        Assert.Contains("￥2", item.Content);
+        Assert.Contains("已开奖", item.SummaryText);
+        Assert.Equal("￥2", item.ValueText);
     }
 }
