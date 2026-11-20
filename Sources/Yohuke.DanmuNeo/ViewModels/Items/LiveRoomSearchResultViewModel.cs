@@ -64,16 +64,20 @@ public sealed class LiveRoomSearchResultViewModel : ObservableObject
     /// </summary>
     public string Title => result.Title;
 
+    /// <summary>结果是否有可展示的直播标题。</summary>
+    public bool HasTitle => !string.IsNullOrWhiteSpace(Title);
+
     /// <summary>
     /// 是否正在直播。
     /// </summary>
     public bool IsLive => result.IsLive;
 
     /// <summary>
-    /// 列表中的房间与直播状态说明。
+    /// 列表中的房间资料，未开播时附带状态说明。
     /// </summary>
-    public string DetailLine => Localization.Format("Room.Search.Detail", RoomId, OwnerUid,
-        Localization.Get(IsLive ? "Room.Search.Live" : "Room.Search.Offline"));
+    public string DetailLine => IsLive
+        ? Localization.Format("Room.Search.Identity", RoomId, OwnerUid)
+        : Localization.Format("Room.Search.Detail", RoomId, OwnerUid, Localization.Get("Room.Search.Offline"));
 
     internal static string GetSourceLabel(LiveRoomSearchSource source)
     {

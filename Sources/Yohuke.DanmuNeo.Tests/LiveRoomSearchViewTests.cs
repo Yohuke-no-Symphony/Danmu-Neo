@@ -5,8 +5,11 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Platform;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Lucide.Avalonia;
+using Yohuke.DanmuNeo.I18n;
 using Yohuke.DanmuNeo.Models.Workspace;
 using Yohuke.DanmuNeo.Views.Components;
 
@@ -78,14 +81,17 @@ public class LiveRoomSearchViewTests
     }
 
     /// <summary>
-    /// 窄高窗口中结果可滚动，操作区始终留在可见范围。
+    /// 短窗口中收起空标题、突出直播状态，并让底部操作保持可见。
     /// </summary>
-    [AvaloniaFact]
-    public void ShortDialogKeepsFooterVisible()
+    [AvaloniaTheory]
+    [InlineData(820, false)]
+    [InlineData(440, true)]
+    public void ShortDialogKeepsResultsCompactAndFooterVisible(int width, bool dark)
     {
         using var context = new LiveRoomSearchTestContext();
         var viewModel = context.ViewModel;
         viewModel.OpenAddRoomDialog(null);
+        var longTitle = new string('题', 80);
 
         for (var index = 0; index < 42; index++)
         {
@@ -93,13 +99,20 @@ public class LiveRoomSearchViewTests
             {
                 RoomId = (100 + index).ToString(),
                 OwnerUid = "42",
-                OwnerName = new string('长', 80),
-                Title = new string('题', 80)
+                OwnerName = index < 2 ? $"主播 {index + 1}" : new string('长', 80),
+                Title = index switch { 0 => "", 1 => "  ", _ => longTitle },
+                IsLive = index == 1
             }));
         }
 
         var view = new AddWorkspaceDialogView { DataContext = viewModel };
-        var window = new Window { Width = 820, Height = 450, Content = view };
+        var window = new Window
+        {
+            Width = width,
+            Height = 450,
+            Content = view,
+            RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light
+        };
 
         try
         {
@@ -125,6 +138,20 @@ public class LiveRoomSearchViewTests
             var scrollViewer = results.GetVisualAncestors().OfType<ScrollViewer>().First();
             Assert.True(scrollViewer.Extent.Height > scrollViewer.Viewport.Height);
             Assert.True(scrollViewer.Extent.Width <= scrollViewer.Viewport.Width + 0.5);
+
+            var resultTexts = results.GetVisualDescendants().OfType<TextBlock>()
+                .Where(text => text.IsEffectivelyVisible).ToArray();
+            Assert.DoesNotContain(resultTexts, text => string.IsNullOrWhiteSpace(text.Text));
+            Assert.Contains(resultTexts, text => text.Text == longTitle);
+            var liveLabel = Assert.Single(resultTexts, text => text.Text == Localization.Get("Room.Search.Live"));
+            Assert.Same(viewModel.LiveRoomSearchResults[1], liveLabel.DataContext);
+            var liveIcon = Assert.Single(results.GetVisualDescendants().OfType<LucideIcon>(),
+                icon => icon.Kind == LucideIconKind.Radio && icon.IsEffectivelyVisible);
+            var offlineDetails = Assert.Single(resultTexts, text => text.Text == viewModel.LiveRoomSearchResults[0].DetailLine);
+            Assert.NotNull(liveLabel.Foreground);
+            Assert.Same(liveLabel.Foreground, liveIcon.Foreground);
+            Assert.NotSame(offlineDetails.Foreground, liveLabel.Foreground);
+
             var previewDirectory = Environment.GetEnvironmentVariable("YOHUKE_SEARCH_QA_OUTPUT");
 
             if (!string.IsNullOrWhiteSpace(previewDirectory))
@@ -132,7 +159,7 @@ public class LiveRoomSearchViewTests
                 Directory.CreateDirectory(previewDirectory);
                 using var frame = window.CaptureRenderedFrame();
                 Assert.NotNull(frame);
-                frame.Save(Path.Combine(previewDirectory, "live-room-search.png"));
+                frame.Save(Path.Combine(previewDirectory, dark ? "live-room-search-dark.png" : "live-room-search.png"));
             }
         }
         finally

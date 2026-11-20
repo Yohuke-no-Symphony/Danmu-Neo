@@ -74,9 +74,28 @@
                                                                    FontWeight="SemiBold"
                                                                    TextTrimming="CharacterEllipsis" />
                                                         <TextBlock Text="{Binding Title}"
+                                                                   IsVisible="{Binding HasTitle}"
                                                                    TextTrimming="CharacterEllipsis" />
-                                                        <TextBlock Text="{Binding DetailLine}"
-                                                                   Classes="muted" />
+                                                        <Grid ColumnDefinitions="*,Auto" HorizontalAlignment="Left">
+                                                            <TextBlock Text="{Binding DetailLine}"
+                                                                       Classes="muted"
+                                                                       VerticalAlignment="Center"
+                                                                       TextTrimming="CharacterEllipsis" />
+                                                            <StackPanel Grid.Column="1"
+                                                                        Orientation="Horizontal"
+                                                                        Spacing="4"
+                                                                        Margin="8,0,0,0"
+                                                                        VerticalAlignment="Center"
+                                                                        IsVisible="{Binding IsLive}">
+                                                                <LucideIcon Kind="Radio" Width="14" Height="14"
+                                                                            VerticalAlignment="Center"
+                                                                            Foreground="{DynamicResource AppLiveStatusBrush}" />
+                                                                <TextBlock Text="{Loc Key=Room.Search.Live}"
+                                                                           FontWeight="SemiBold"
+                                                                           Foreground="{DynamicResource AppLiveStatusBrush}"
+                                                                           VerticalAlignment="Center" />
+                                                            </StackPanel>
+                                                        </Grid>
                                                         <TextBlock Text="{Binding SourceLabel}"
                                                                    Classes="muted" />
                                                     </StackPanel>
