@@ -295,7 +295,9 @@ internal sealed class DanmuStylePreviewViewModel : ViewModelBase, IDisposable
             Time = now.AddSeconds(-8),
             UserUid = "10002",
             MedalName = "肉肉",
-            MedalLevel = 25
+            MedalLevel = 25,
+            ReplyUserName = "Nano",
+            ReplyUserNameColor = "#2050A0"
         }, "Preview.LongUser", "Preview.LongContent");
         AddDanmuSample(new()
         {

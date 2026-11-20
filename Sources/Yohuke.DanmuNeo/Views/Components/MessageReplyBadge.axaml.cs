@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
+using Avalonia.Media;
 using Yohuke.DanmuNeo.Models.Workspace;
 using Yohuke.DanmuNeo.Services;
 
@@ -9,18 +10,20 @@ namespace Yohuke.DanmuNeo.Views.Components;
 
 internal sealed partial class MessageReplyBadge : UserControl
 {
-    private readonly Border frame;
+    private readonly AdaptiveForegroundBorder frame;
     private readonly Grid content;
     private readonly UserAvatarView avatar;
     private readonly TextBlock name;
+    private readonly IBrush? replyNameForeground;
 
     internal MessageReplyBadge(DanmuReply reply, IUserAvatarService? avatars, bool showAvatar)
     {
         AvaloniaXamlLoader.Load(this);
-        frame = this.FindControl<Border>("ReplyFrame")!;
+        frame = this.FindControl<AdaptiveForegroundBorder>("ReplyFrame")!;
         content = this.FindControl<Grid>("ReplyContent")!;
         avatar = this.FindControl<UserAvatarView>("ReplyAvatar")!;
         name = this.FindControl<TextBlock>("ReplyName")!;
+        replyNameForeground = Color.TryParse(reply.UserNameColor, out var color) ? new SolidColorBrush(color) : null;
         avatar.AvatarService = avatars;
         avatar.UserUid = reply.UserUid;
         avatar.ShowAvatar = showAvatar;
@@ -35,7 +38,7 @@ internal sealed partial class MessageReplyBadge : UserControl
         name.FontWeight = owner.FontWeight;
         name.FontStyle = owner.FontStyle;
         name.FontStretch = owner.FontStretch;
-        name.Foreground = owner.Foreground;
+        frame.PreferredForeground = replyNameForeground ?? owner.Foreground;
         avatar.Width = owner.FontSize * 1.1;
         avatar.Height = avatar.Width;
         content.ColumnSpacing = avatar.ShowAvatar ? owner.FontSize * 0.2 : 0;
