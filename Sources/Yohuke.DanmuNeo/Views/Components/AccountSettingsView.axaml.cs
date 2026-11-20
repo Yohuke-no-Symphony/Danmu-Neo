@@ -15,7 +15,7 @@ namespace Yohuke.DanmuNeo.Views.Components;
 public partial class AccountSettingsView : UserControl
 {
     private readonly Func<BrowserLoginPlatform, Window, Task<BrowserCookieLoginResult?>> showBrowserLogin;
-    private bool isBrowserLoginOpen;
+    private bool isLoginOpen;
 
     /// <summary>
     /// 初始化账号登录设置页。
@@ -49,7 +49,7 @@ public partial class AccountSettingsView : UserControl
         }
     }
 
-    private async void BilibiliBrowserLogin_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private async void BilibiliLogin_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel viewModel)
         {
@@ -57,11 +57,11 @@ public partial class AccountSettingsView : UserControl
         }
 
         var account = ((sender as Control)?.DataContext as AccountSettingsItemViewModel)?.Account;
-        var result = await ShowBrowserLoginAsync(BrowserLoginPlatform.Bilibili);
+        var cookie = await RunLoginDialogAsync(owner => ShowBilibiliLoginDialogAsync(owner, account is not null));
 
-        if (result is not null)
+        if (cookie is not null)
         {
-            await viewModel.ApplyBilibiliBrowserLoginAsync(result, account);
+            await viewModel.ApplyBilibiliLoginAsync(cookie, account);
         }
     }
 
@@ -80,15 +80,68 @@ public partial class AccountSettingsView : UserControl
         }
     }
 
-    internal async Task<BrowserCookieLoginResult?> ShowBrowserLoginAsync(BrowserLoginPlatform platform)
+    internal Task<BrowserCookieLoginResult?> ShowBrowserLoginAsync(BrowserLoginPlatform platform)
     {
-        if (isBrowserLoginOpen || TopLevel.GetTopLevel(this) is not Window owner)
+        return RunLoginDialogAsync(owner => OpenBrowserLoginAsync(platform, owner));
+    }
+
+    private async Task<TResult?> RunLoginDialogAsync<TResult>(Func<Window, Task<TResult?>> showDialog)
+        where TResult : class
+    {
+        if (isLoginOpen || TopLevel.GetTopLevel(this) is not Window owner)
         {
             return null;
         }
 
-        isBrowserLoginOpen = true;
+        isLoginOpen = true;
+        try
+        {
+            return await showDialog(owner);
+        }
+        finally
+        {
+            isLoginOpen = false;
+        }
+    }
 
+    private async Task<string?> ShowBilibiliLoginDialogAsync(Window owner, bool relogin)
+    {
+        try
+        {
+            var window = new BilibiliLoginWindow(null, null, relogin);
+            string? cookie;
+            try
+            {
+                cookie = await window.ShowDialog<string?>(owner);
+            }
+            finally
+            {
+                window.Close();
+            }
+
+            if (!owner.IsVisible)
+            {
+                return null;
+            }
+
+            return window.BrowserLoginRequested
+                ? (await OpenBrowserLoginAsync(BrowserLoginPlatform.Bilibili, owner))?.Cookie
+                : cookie;
+        }
+        catch (Exception)
+        {
+            if (DataContext is MainWindowViewModel viewModel)
+            {
+                viewModel.SetLocalizedStatus("UI.BilibiliLoginWindow.Unavailable");
+                viewModel.Log.Error(Localization.Get("App.Log.BilibiliLogin"), viewModel.StatusMessage);
+            }
+
+            return null;
+        }
+    }
+
+    private async Task<BrowserCookieLoginResult?> OpenBrowserLoginAsync(BrowserLoginPlatform platform, Window owner)
+    {
         try
         {
             return await showBrowserLogin(platform, owner);
@@ -102,10 +155,6 @@ public partial class AccountSettingsView : UserControl
             }
 
             return null;
-        }
-        finally
-        {
-            isBrowserLoginOpen = false;
         }
     }
 

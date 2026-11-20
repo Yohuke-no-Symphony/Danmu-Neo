@@ -211,9 +211,22 @@ public partial class MainWindowViewModel
     /// <summary>
     /// 应用 B 站浏览器登录结果。
     /// </summary>
-    public async Task ApplyBilibiliBrowserLoginAsync(BrowserCookieLoginResult result, BilibiliAccount? account)
+    public Task ApplyBilibiliBrowserLoginAsync(BrowserCookieLoginResult result, BilibiliAccount? account)
     {
-        if (result.Platform != BrowserLoginPlatform.Bilibili || string.IsNullOrWhiteSpace(result.Cookie))
+        return result.Platform == BrowserLoginPlatform.Bilibili
+            ? ApplyBilibiliLoginCookieAsync(result.Cookie, account, () => SetBrowserLoginStatus(result))
+            : Task.CompletedTask;
+    }
+
+    internal Task ApplyBilibiliLoginAsync(string cookie, BilibiliAccount? account)
+    {
+        return ApplyBilibiliLoginCookieAsync(cookie, account,
+            () => SetLocalizedStatus("UI.BilibiliLoginWindow.SignedIn"));
+    }
+
+    private async Task ApplyBilibiliLoginCookieAsync(string cookie, BilibiliAccount? account, Action setLoginStatus)
+    {
+        if (isDisposed || string.IsNullOrWhiteSpace(cookie) || (account is not null && !Accounts.Contains(account)))
         {
             return;
         }
@@ -233,14 +246,14 @@ public partial class MainWindowViewModel
             RefreshForwardAccountOptions();
         }
 
-        targetAccount.Cookie = result.Cookie;
+        targetAccount.Cookie = cookie;
         if (AccountItems.FirstOrDefault(item => item.Account == targetAccount) is { } accountItem)
         {
             await accountItem.RefreshAsync();
         }
         RefreshAccountLabels();
         await SaveAsync();
-        SetBrowserLoginStatus(result);
+        setLoginStatus();
         Log.Information(Localization.Get("App.Log.BilibiliLogin"), StatusMessage);
     }
 

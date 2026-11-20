@@ -41,7 +41,7 @@
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                     <TextBlock Text="{Loc Key=UI.AccountSettingsView.BilibiliAccounts}"
                                Classes="sectionTitle" VerticalAlignment="Center" />
-                    <Button Grid.Column="1" Name="BilibiliBrowserAdd" Click="BilibiliBrowserLogin_OnClick">
+                    <Button Grid.Column="1" Name="BilibiliAdd" Click="BilibiliLogin_OnClick">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <LucideIcon Kind="UserPlus" />
                             <TextBlock Text="{Loc Key=UI.AccountSettingsView.AddAccount}" />
@@ -75,9 +75,10 @@
                                     </Grid>
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8"
                                                 VerticalAlignment="Center">
-                                        <Button Name="AccountBrowserLogin" Classes="iconButton"
-                                                Click="BilibiliBrowserLogin_OnClick"
-                                                ToolTip.Tip="{Loc Key=UI.AccountSettingsView.BrowserSignIn}">
+                                        <Button Name="AccountLogin" Classes="iconButton"
+                                                Click="BilibiliLogin_OnClick"
+                                                ToolTip.Tip="{Loc Key=UI.AccountSettingsView.SignInAgain}"
+                                                AutomationProperties.Name="{Loc Key=UI.AccountSettingsView.SignInAgain}">
                                             <LucideIcon Kind="LogIn" />
                                         </Button>
                                         <RadioButton Name="DefaultAccountToggle" Classes="iconButton"
