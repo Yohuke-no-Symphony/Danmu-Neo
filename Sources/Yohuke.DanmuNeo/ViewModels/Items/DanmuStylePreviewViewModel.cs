@@ -14,6 +14,7 @@ internal sealed class DanmuStylePreviewViewModel : ViewModelBase, IDisposable
     private string userName = Localization.Get("Preview.DefaultUserName");
     private readonly List<Action> sampleLocalizers = [];
     private readonly DanmuColumnWidths danmuColumns = new();
+    private readonly DanmuFeedCollection danmuItems = new();
     private bool isUserNameEdited;
     private bool isContentEdited;
     private string content = Localization.Get("Preview.DefaultContent");
@@ -69,7 +70,7 @@ internal sealed class DanmuStylePreviewViewModel : ViewModelBase, IDisposable
 
     public ObservableCollection<SuperChatItem> SuperChats { get; } = [];
 
-    public ObservableCollection<DanmuFeedItem> DanmuItems { get; } = [];
+    public ObservableCollection<DanmuFeedItem> DanmuItems => danmuItems;
 
     public IReadOnlyList<SuperChatStylePreset> SuperChatPresets { get; }
 
@@ -235,13 +236,14 @@ internal sealed class DanmuStylePreviewViewModel : ViewModelBase, IDisposable
     {
         var now = DateTimeOffset.Now;
         var contentText = NormalizeContent(Content);
-
+        var items = new DanmuFeedItem[DANMU_BATCH_SIZE];
         for (var index = 0; index < DANMU_BATCH_SIZE; index++)
         {
-            DanmuItems.Add(CreateDanmuItem(
+            items[index] = CreateDanmuItem(
                 now.AddMilliseconds(index),
-                Localization.Format("Preview.BatchContent", contentText, index + 1, DANMU_BATCH_SIZE)));
+                Localization.Format("Preview.BatchContent", contentText, index + 1, DANMU_BATCH_SIZE));
         }
+        danmuItems.InsertRange(danmuItems.Count, items);
     }
 
     internal void AddSuperChat()

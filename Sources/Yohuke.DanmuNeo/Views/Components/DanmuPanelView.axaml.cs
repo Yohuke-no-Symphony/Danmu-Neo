@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.VisualTree;
 using CommunityToolkit.Mvvm.Input;
 using Yohuke.DanmuNeo.Models.Workspace;
 using Yohuke.DanmuNeo.ViewModels.Items;
@@ -29,6 +30,9 @@ public partial class DanmuPanelView : WorkbenchRoomPanel
     {
         ScrollToLatestCommand = new RelayCommand(ScrollToLatest, () => DataContext is LiveRoomTabViewModel);
         InitializeComponent();
+        DanmuItemsControl.AddHandler(Button.ClickEvent, Danmu_OnClick);
+        DanmuItemsControl.AddHandler(ContextRequestedEvent, Danmu_OnContextRequested);
+        DanmuItemsControl.ContainerClearing += Danmu_OnContainerClearing;
         scrollController = new(DanmuScrollViewer, DanmuItemsControl);
     }
 
@@ -51,6 +55,7 @@ public partial class DanmuPanelView : WorkbenchRoomPanel
     /// <inheritdoc/>
     protected override void DisposePanel()
     {
+        DanmuItemsControl.ContainerClearing -= Danmu_OnContainerClearing;
         scrollController.Dispose();
         interactions?.Dispose();
     }
@@ -60,30 +65,37 @@ public partial class DanmuPanelView : WorkbenchRoomPanel
         return interactions.CreateDanmuContextMenu(item, room);
     }
 
-    private async void FeedUserName_OnClick(object? sender, RoutedEventArgs e)
+    private void Danmu_OnContainerClearing(object? sender, ContainerClearingEventArgs e)
     {
-        e.Handled = true;
-
-        if (sender is Button { Content: TextBlock { Text: { } name } })
+        if (e.Container is DanmuFeedRow row)
         {
-            await interactions.CopyAsync(name);
+            interactions?.ForgetActivation(row);
         }
     }
 
-    private void Danmu_OnClick(object? sender, RoutedEventArgs e)
+    private async void Danmu_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (sender is Button { DataContext: DanmuFeedItem item } button)
+        if (e.Source is Button { DataContext: DanmuFeedItem item } button)
         {
-            interactions.Insert(button, item);
+            if (button is DanmuFeedRow)
+            {
+                interactions.Insert(button, item);
+            }
+            else if (button.Classes.Contains("feedUserNameButton"))
+            {
+                e.Handled = true;
+                await interactions.CopyAsync(item.UserName);
+            }
         }
     }
 
     private void Danmu_OnContextRequested(object? sender, ContextRequestedEventArgs e)
     {
-        if (sender is Button { DataContext: DanmuFeedItem item } button && Context.CurrentRoom is { } room)
+        if (e.Source is Control source && source.FindAncestorOfType<DanmuFeedRow>(includeSelf: true) is
+            { DataContext: DanmuFeedItem item } row && Context.CurrentRoom is { } room && room.DanmuItems.Contains(item))
         {
             e.Handled = true;
-            interactions.CreateDanmuContextMenu(item, room).Open(button);
+            row.OpenMessageMenu(interactions.CreateDanmuContextMenu(item, room));
         }
     }
 }

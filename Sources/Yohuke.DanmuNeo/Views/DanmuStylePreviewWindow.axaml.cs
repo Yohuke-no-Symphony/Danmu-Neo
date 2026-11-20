@@ -26,6 +26,7 @@ public partial class DanmuStylePreviewWindow : Window
     public DanmuStylePreviewWindow()
     {
         InitializeComponent();
+        DanmuItemsControl.AddHandler(Button.ClickEvent, FeedUserName_OnClick);
         WindowChrome.AttachFrame(this);
         DataContext = viewModel;
         danmuScrollController = new(DanmuScrollViewer, DanmuItemsControl);
@@ -102,10 +103,10 @@ public partial class DanmuStylePreviewWindow : Window
 
     private async void FeedUserName_OnClick(object? sender, RoutedEventArgs e)
     {
-        e.Handled = true;
-
-        if (sender is Button { Content: TextBlock { Text: { } userName } } && Clipboard is { } clipboard)
+        if (e.Source is Button { Content: TextBlock { Text: { } userName } } button &&
+            button.Classes.Contains("feedUserNameButton") && Clipboard is { } clipboard)
         {
+            e.Handled = true;
             await clipboard.SetTextAsync(userName);
         }
     }

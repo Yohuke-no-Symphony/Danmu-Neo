@@ -146,6 +146,10 @@ public class DanmuStylePreviewWindowTests
             Click(window, batch);
             Assert.Equal(countBeforeBatch + 80, viewModel.DanmuItems.Count);
             PumpLayout(window);
+            var danmu = window.FindControl<DanmuFeedList>("DanmuItemsControl")!;
+            Assert.InRange(danmu.GetRealizedContainers().Count(), 1, viewModel.DanmuItems.Count - 1);
+            Assert.Null(danmu.ContainerFromIndex(0));
+            Assert.NotNull(danmu.ContainerFromItem(viewModel.DanmuItems[^1]));
             var scroll = window.FindControl<ScrollViewer>("DanmuScrollViewer")!;
             Assert.Equal(scroll.ScrollBarMaximum.Y, scroll.Offset.Y, 0.5);
             var point = scroll.TranslatePoint(new Point(scroll.Bounds.Width / 2, scroll.Bounds.Height / 2), window)!.Value;

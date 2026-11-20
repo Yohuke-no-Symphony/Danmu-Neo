@@ -297,6 +297,11 @@ public class CompactFeedLayoutTests
         var text = button.GetVisualDescendants().OfType<TextBlock>()
             .Single(control => control.IsEffectivelyVisible && control.Text == content);
 
+        if (item is DanmuFeedItem)
+        {
+            Assert.Same(text, Assert.Single(button.GetVisualDescendants().OfType<EmoticonTextBlock>()));
+        }
+
         Assert.Equal(wraps, text.TextLayout.TextLines.Count > 1);
         Assert.True(text.Bounds.Height >= text.TextLayout.Height - 0.5);
     }

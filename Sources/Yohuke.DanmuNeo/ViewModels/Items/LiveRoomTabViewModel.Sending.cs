@@ -256,17 +256,8 @@ public partial class LiveRoomTabViewModel
                 TranslateHistoryItems[TranslateHistoryItems.IndexOf(existing)] = item;
             }
             OnPropertyChanged(nameof(HasTranslateHistory));
-            var failed = string.IsNullOrEmpty(item.SendRecordId) ? null :
-                DanmuItems.FirstOrDefault(record => record.IsLocalRecord && record.SendRecordId == item.SendRecordId);
-            if (failed is not null)
-            {
-                DanmuItems.Remove(failed);
-            }
-            if (!item.IsSendAccepted)
-            {
-                DanmuItems.Add(item);
-                TrimDanmuItems();
-            }
+            QueueDanmuFeedUpdate(new(item));
+            ScheduleDanmuFeedPublication();
         });
     }
 }

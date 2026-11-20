@@ -44,6 +44,11 @@ internal sealed class WorkbenchFeedInteraction : IDisposable
         Insert(button, item, item.Content);
     }
 
+    internal void ForgetActivation(Button button)
+    {
+        activations.Remove(button);
+    }
+
     /// <inheritdoc/>
     public void Dispose()
     {

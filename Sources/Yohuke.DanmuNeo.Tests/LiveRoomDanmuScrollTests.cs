@@ -33,9 +33,7 @@ public class LiveRoomDanmuScrollTests
         {
             ShowWindow(window);
             var scroll = view.FindControl<ScrollViewer>("DanmuScrollViewer")!;
-            var latest = view.GetVisualDescendants().OfType<Button>()
-                .Last(control => control.Classes.Contains("danmuFeedButton"));
-            latest.Focus();
+            Assert.True(GetRealizedRow(view, context.Room.DanmuItems[^1]).Focus());
             context.Room.AddDanmu(new() { RoomId = "100", Uid = 30, Content = "排队中的最新弹幕" });
             window.KeyPressQwerty(PhysicalKey.PageUp, RawInputModifiers.None);
             window.KeyReleaseQwerty(PhysicalKey.PageUp, RawInputModifiers.None);
@@ -68,11 +66,7 @@ public class LiveRoomDanmuScrollTests
             var oldest = context.Room.DanmuItems[0];
             WheelUp(window, scroll);
             PumpLayout(window);
-            var anchor = view.GetVisualDescendants().OfType<Button>()
-                .Where(control => control.Classes.Contains("danmuFeedButton"))
-                .First(control => control.TranslatePoint(default, scroll)!.Value.Y >= 0);
-            var anchorItem = anchor.DataContext;
-            var before = anchor.TranslatePoint(default, scroll)!.Value.Y;
+            var (anchorItem, before) = GetReadingAnchor(view, scroll);
             context.Room.AddDanmu(new()
             {
                 RoomId = "100", Uid = 30, UserName = "新用户", MedalName = "长牌子", MedalLevel = 30,
@@ -80,8 +74,7 @@ public class LiveRoomDanmuScrollTests
             });
             PumpLayout(window);
 
-            Assert.Same(anchorItem, anchor.DataContext);
-            Assert.InRange(anchor.TranslatePoint(default, scroll)!.Value.Y, before - 0.5, before + 0.5);
+            AssertAnchorPosition(view, scroll, anchorItem, before);
             Assert.Equal(300, context.Room.DanmuItems.Count);
             Assert.DoesNotContain(oldest, context.Room.DanmuItems);
             Assert.Equal(new string('长', 180), context.Room.DanmuItems[^1].Content);
@@ -111,17 +104,14 @@ public class LiveRoomDanmuScrollTests
             var scroll = view.FindControl<ScrollViewer>("DanmuScrollViewer")!;
             WheelUp(window, scroll);
             PumpLayout(window);
-            var anchor = GetReadingAnchor(view, scroll);
-            var item = anchor.DataContext;
-            var before = anchor.TranslatePoint(default, scroll)!.Value.Y;
+            var (item, before) = GetReadingAnchor(view, scroll);
 
             context.Room.AddDanmu(new() { RoomId = "100", Content = new string('长', 180) });
             scroll.Offset = default;
             context.Room.AddDanmu(new() { RoomId = "100", Content = "同一次布局中的第二条弹幕" });
-            PumpLayout(window);
+            Dispatcher.UIThread.RunJobs(DispatcherPriority.Render);
 
-            Assert.Same(item, anchor.DataContext);
-            Assert.InRange(anchor.TranslatePoint(default, scroll)!.Value.Y, before - 0.5, before + 0.5);
+            AssertAnchorPosition(view, scroll, item, before);
             Assert.InRange(scroll.Offset.Y, 0, scroll.ScrollBarMaximum.Y - 1);
             Assert.Equal(300, context.Room.DanmuItems.Count);
         }
@@ -149,20 +139,18 @@ public class LiveRoomDanmuScrollTests
         {
             ShowWindow(window);
             var scroll = view.FindControl<ScrollViewer>("DanmuScrollViewer")!;
-            var latest = view.GetVisualDescendants().OfType<Button>()
-                .Where(control => control.Classes.Contains("danmuFeedButton"))
-                .Reverse().ElementAt(focusIndex);
             WheelUp(window, scroll);
             PumpLayout(window);
-            var anchor = GetReadingAnchor(view, scroll);
-            var before = anchor.TranslatePoint(default, scroll)!.Value.Y;
+            var (item, before) = GetReadingAnchor(view, scroll);
+            var target = GetRowsInViewport(view, scroll).ElementAt(focusIndex).Row;
 
-            Assert.False(latest.IsFocused);
-            Assert.True(latest.Focus());
+            Assert.False(target.IsFocused);
+            Assert.True(target.Focus());
             context.Room.AddDanmu(new() { RoomId = "100", Content = "焦点变化后到达的新弹幕" });
+            scroll.Offset = new(scroll.Offset.X, scroll.ScrollBarMaximum.Y);
             PumpLayout(window);
 
-            Assert.InRange(anchor.TranslatePoint(default, scroll)!.Value.Y, before - 0.5, before + 0.5);
+            AssertAnchorPosition(view, scroll, item, before);
             Assert.InRange(scroll.Offset.Y, 0, scroll.ScrollBarMaximum.Y - 1);
         }
         finally
@@ -189,16 +177,16 @@ public class LiveRoomDanmuScrollTests
             var scroll = view.FindControl<ScrollViewer>("DanmuScrollViewer")!;
             WheelUp(window, scroll);
             PumpLayout(window);
+            var (firstItem, _) = GetReadingAnchor(view, scroll);
             context.Room.AddDanmu(new() { RoomId = "100", Content = "再次滚动前的新弹幕" });
             WheelUp(window, scroll);
-            var anchor = GetReadingAnchor(view, scroll);
-            var item = anchor.DataContext;
-            var before = anchor.TranslatePoint(default, scroll)!.Value.Y;
+            PumpLayout(window);
+            var (item, before) = GetReadingAnchor(view, scroll);
+            Assert.NotSame(firstItem, item);
             context.Room.AddDanmu(new() { RoomId = "100", Content = new string('长', 180) });
             PumpLayout(window);
 
-            Assert.Same(item, anchor.DataContext);
-            Assert.InRange(anchor.TranslatePoint(default, scroll)!.Value.Y, before - 0.5, before + 0.5);
+            AssertAnchorPosition(view, scroll, item, before);
             Assert.InRange(scroll.Offset.Y, 0, scroll.ScrollBarMaximum.Y - 1);
         }
         finally
@@ -233,8 +221,7 @@ public class LiveRoomDanmuScrollTests
             window.MouseMove(target, RawInputModifiers.LeftMouseButton);
             PumpLayout(window);
             Assert.InRange(scroll.Offset.Y, 0, scroll.ScrollBarMaximum.Y - 1);
-            var anchor = GetReadingAnchor(view, scroll);
-            var before = anchor.TranslatePoint(default, scroll)!.Value.Y;
+            var (item, before) = GetReadingAnchor(view, scroll);
             context.Room.AddDanmu(new() { RoomId = "100", Content = "拖动滚动条期间的新消息" });
             scroll.Offset = default;
             context.Room.AddDanmu(new() { RoomId = "100", Content = new string('长', 180) });
@@ -242,7 +229,7 @@ public class LiveRoomDanmuScrollTests
             window.MouseUp(target, MouseButton.Left);
             PumpLayout(window);
 
-            Assert.InRange(anchor.TranslatePoint(default, scroll)!.Value.Y, before - 0.5, before + 0.5);
+            AssertAnchorPosition(view, scroll, item, before);
             Assert.InRange(scroll.Offset.Y, 0, scroll.ScrollBarMaximum.Y - 1);
 
             start = thumb.TranslatePoint(new Point(thumb.Bounds.Width / 2, thumb.Bounds.Height / 2), window)!.Value;
@@ -283,19 +270,67 @@ public class LiveRoomDanmuScrollTests
             WheelUp(window, scroll);
             PumpLayout(window);
             Assert.InRange(scroll.Offset.Y, 0, scroll.ScrollBarMaximum.Y - 1);
-            var anchor = GetReadingAnchor(view, scroll);
-            var before = anchor.TranslatePoint(default, scroll)!.Value.Y;
+            var (item, before) = GetReadingAnchor(view, scroll);
 
-            for (var index = 0; index < 12; index++)
+            var extent = scroll.Extent.Height;
+            for (var batch = 0; batch < 3; batch++)
             {
-                context.Room.AddDanmu(new() { RoomId = "100", Content = new string('长', index * 9 + 1) });
+                for (var index = 0; index < 4; index++)
+                {
+                    context.Room.AddDanmu(new()
+                    {
+                        RoomId = "100", Uid = 30, UserName = "用户", Content = $"连续刷新 {batch}-{index}"
+                    });
+                }
+
+                Dispatcher.UIThread.RunJobs(DispatcherPriority.Render);
+                Assert.Equal(extent, scroll.Extent.Height, 0.5);
+                AssertAnchorPosition(view, scroll, item, before);
+                PumpLayout(window);
+                AssertAnchorPosition(view, scroll, item, before);
             }
 
-            PumpLayout(window);
-
-            Assert.InRange(anchor.TranslatePoint(default, scroll)!.Value.Y, before - 0.5, before + 0.5);
             Assert.InRange(scroll.Offset.Y, 0, scroll.ScrollBarMaximum.Y - 1);
             Assert.Equal(300, context.Room.DanmuItems.Count);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    /// <summary>
+    /// 阅读的首条弹幕被裁剪后，从仍可用的最早一条继续翻阅。
+    /// </summary>
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TrimmingPartiallyVisibleOldestDanmuKeepsReadingAtTop(bool compact)
+    {
+        using var context = new LiveRoomFeedViewTestContext();
+        var view = CreateView(context, compact);
+        var window = CreateWindow(context, view);
+
+        try
+        {
+            ShowWindow(window);
+            var scroll = view.FindControl<ScrollViewer>("DanmuScrollViewer")!;
+            var point = scroll.TranslatePoint(new Point(scroll.Bounds.Width / 2, scroll.Bounds.Height / 2), window)!.Value;
+            window.MouseWheel(point, new Vector(0, 1000));
+            window.MouseWheel(point, new Vector(0, -0.2));
+            PumpLayout(window);
+
+            var (next, _) = GetReadingAnchor(view, scroll);
+            Assert.True(scroll.Offset.Y > 0);
+            Assert.Same(context.Room.DanmuItems[1], next);
+
+            context.Room.AddDanmu(new() { RoomId = "100", Uid = 30, UserName = "用户", Content = "新弹幕" });
+            PumpLayout(window);
+
+            Assert.Equal(0, scroll.Offset.Y, 0.5);
+            Assert.Same(context.Room.DanmuItems[0], next);
+            var row = GetRealizedRow(view, next);
+            Assert.InRange(row.TranslatePoint(default, scroll)!.Value.Y, 0, 0.5);
         }
         finally
         {
@@ -317,9 +352,7 @@ public class LiveRoomDanmuScrollTests
         {
             ShowWindow(window);
             var scroll = view.FindControl<ScrollViewer>("DanmuScrollViewer")!;
-            var latest = view.GetVisualDescendants().OfType<Button>()
-                .Last(control => control.Classes.Contains("danmuFeedButton"));
-            latest.Focus();
+            Assert.True(GetRealizedRow(view, context.Room.DanmuItems[^1]).Focus());
             window.KeyPressQwerty(PhysicalKey.PageUp, RawInputModifiers.None);
             window.KeyReleaseQwerty(PhysicalKey.PageUp, RawInputModifiers.None);
             PumpLayout(window);
@@ -375,9 +408,9 @@ public class LiveRoomDanmuScrollTests
             PumpLayout(window);
 
             Assert.Equal(0, scroll.Offset.Y);
-            var first = GetReadingAnchor(view, scroll);
-            Assert.Same(Assert.Single(context.Room.DanmuItems), first.DataContext);
-            Assert.InRange(first.TranslatePoint(default, scroll)!.Value.Y, 0, 0.5);
+            var (first, top) = GetReadingAnchor(view, scroll);
+            Assert.Same(Assert.Single(context.Room.DanmuItems), first);
+            Assert.InRange(top, 0, 0.5);
         }
         finally
         {
@@ -415,20 +448,52 @@ public class LiveRoomDanmuScrollTests
             nextRoom.AddDanmu(new() { RoomId = "200", Content = "新房间阅读中新消息" });
             PumpLayout(window);
             Assert.InRange(scroll.Offset.Y, 0, scroll.ScrollBarMaximum.Y - 1);
-            var anchor = GetReadingAnchor(view, scroll);
-            var anchorItem = anchor.DataContext;
-            var anchorY = anchor.TranslatePoint(default, scroll)!.Value.Y;
+            var (anchorItem, anchorY) = GetReadingAnchor(view, scroll);
             window.Content = null;
             PumpLayout(window);
             window.Content = view;
             PumpLayout(window);
-            anchor = GetReadingAnchor(view, scroll);
-            Assert.Same(anchorItem, anchor.DataContext);
-            Assert.InRange(anchor.TranslatePoint(default, scroll)!.Value.Y, anchorY - 0.5, anchorY + 0.5);
+            Assert.Same(anchorItem, GetReadingAnchor(view, scroll).Item);
+            AssertAnchorPosition(view, scroll, anchorItem, anchorY);
             nextRoom.AddDanmu(new() { RoomId = "200", Content = "重新挂载后的新消息" });
             PumpLayout(window);
-            Assert.Same(anchorItem, anchor.DataContext);
-            Assert.InRange(anchor.TranslatePoint(default, scroll)!.Value.Y, anchorY - 0.5, anchorY + 0.5);
+            AssertAnchorPosition(view, scroll, anchorItem, anchorY);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    /// <summary>连续追加不同高度的消息时，最新一行始终进入视口。</summary>
+    [AvaloniaFact]
+    public void FollowingLatestBringsActualLastMessageIntoViewAcrossBursts()
+    {
+        using var context = new LiveRoomFeedViewTestContext();
+        var view = CreateView(context, false);
+        var window = CreateWindow(context, view);
+
+        try
+        {
+            ShowWindow(window);
+            var scroll = view.FindControl<ScrollViewer>("DanmuScrollViewer")!;
+            for (var batch = 0; batch < 3; batch++)
+            {
+                for (var index = 0; index < 40; index++)
+                {
+                    context.Room.AddDanmu(new()
+                    {
+                        RoomId = "100",
+                        Content = index % 3 == 0 ? new string('长', 180) : $"弹幕 {batch}-{index}"
+                    });
+                }
+
+                PumpLayout(window);
+                var last = GetRealizedRow(view, context.Room.DanmuItems[^1]);
+                var bottom = last.TranslatePoint(new Point(0, last.Bounds.Height), scroll)!.Value.Y;
+                Assert.Equal(scroll.ScrollBarMaximum.Y, scroll.Offset.Y, 0.5);
+                Assert.InRange(bottom, scroll.Viewport.Height - 3, scroll.Viewport.Height + 0.5);
+            }
         }
         finally
         {
@@ -485,10 +550,33 @@ public class LiveRoomDanmuScrollTests
         window.MouseWheel(point, new Vector(0, -1000));
     }
 
-    private static Button GetReadingAnchor(LiveRoomWorkspaceView view, ScrollViewer scroll)
+    private static (DanmuFeedItem Item, double Top) GetReadingAnchor(LiveRoomWorkspaceView view, ScrollViewer scroll)
     {
-        return view.GetVisualDescendants().OfType<Button>()
-            .Where(control => control.Classes.Contains("danmuFeedButton"))
-            .First(control => control.TranslatePoint(default, scroll)!.Value.Y >= 0);
+        var (row, top) = GetRowsInViewport(view, scroll).First();
+        return (Assert.IsType<DanmuFeedItem>(row.DataContext), top);
+    }
+
+    private static IEnumerable<(Button Row, double Top)> GetRowsInViewport(LiveRoomWorkspaceView view, ScrollViewer scroll)
+    {
+        return view.FindControl<DanmuFeedList>("DanmuItemsControl")!.GetRealizedContainers()
+            .OfType<Button>()
+            .Where(row => row.IsEffectivelyVisible)
+            .Select(row => (Row: row, Top: row.TranslatePoint(default, scroll)!.Value.Y))
+            .Where(pair => pair.Top >= 0 && pair.Top < scroll.Viewport.Height)
+            .OrderBy(pair => pair.Top);
+    }
+
+    private static Button GetRealizedRow(LiveRoomWorkspaceView view, DanmuFeedItem item)
+    {
+        var list = view.FindControl<DanmuFeedList>("DanmuItemsControl")!;
+        var row = Assert.IsAssignableFrom<Button>(list.ContainerFromItem(item));
+        Assert.Same(item, row.DataContext);
+        return row;
+    }
+
+    private static void AssertAnchorPosition(LiveRoomWorkspaceView view, ScrollViewer scroll, DanmuFeedItem item, double expected)
+    {
+        var row = GetRealizedRow(view, item);
+        Assert.InRange(row.TranslatePoint(default, scroll)!.Value.Y, expected - 0.5, expected + 0.5);
     }
 }

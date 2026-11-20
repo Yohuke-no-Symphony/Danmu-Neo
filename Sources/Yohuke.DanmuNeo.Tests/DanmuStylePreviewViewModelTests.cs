@@ -1,3 +1,4 @@
+using System.Collections.Specialized;
 using Avalonia.Media;
 using Yohuke.DanmuNeo.Models.Workspace;
 using Yohuke.DanmuNeo.ViewModels.Items;
@@ -130,7 +131,7 @@ public class DanmuStylePreviewViewModelTests
     [Fact]
     public void AddDanmuBatchPreservesExistingRowsAndEditableMetadata()
     {
-        var viewModel = new DanmuStylePreviewViewModel
+        using var viewModel = new DanmuStylePreviewViewModel
         {
             UserName = " 批量用户 ",
             Content = " 批量正文 ",
@@ -139,11 +140,17 @@ public class DanmuStylePreviewViewModelTests
             DanmuStatus = " 已转发 "
         };
         var existingItems = viewModel.DanmuItems.ToArray();
+        var changes = new List<NotifyCollectionChangedEventArgs>();
+        viewModel.DanmuItems.CollectionChanged += (_, change) => changes.Add(change);
 
         viewModel.AddDanmuBatch();
 
         var newItems = viewModel.DanmuItems.Skip(existingItems.Length).ToArray();
         Assert.True(newItems.Length >= 50);
+        var batch = Assert.Single(changes);
+        Assert.Equal(NotifyCollectionChangedAction.Add, batch.Action);
+        Assert.Equal(existingItems.Length, batch.NewStartingIndex);
+        Assert.Equal(newItems.Length, batch.NewItems!.Count);
         Assert.Equal(newItems.Length, newItems.Select(item => item.Content).Distinct().Count());
         Assert.All(newItems, item =>
         {

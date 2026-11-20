@@ -75,6 +75,7 @@ public partial class LiveRoomTabViewModel : ViewModelBase, IDisposable
     {
         State = state;
         LiveMarker = new(state);
+        danmuItems.CollectionChanged += OnDanmuFeedItemsChanged;
         GiftItems = new(giftItems);
         RedPocketItems = new(redPocketItems);
         inputDraft = state.InputDraft;
@@ -106,7 +107,7 @@ public partial class LiveRoomTabViewModel : ViewModelBase, IDisposable
     /// <summary>
     /// 弹幕列表。
     /// </summary>
-    public ObservableCollection<DanmuFeedItem> DanmuItems { get; } = [];
+    public ObservableCollection<DanmuFeedItem> DanmuItems => danmuItems;
 
     /// <summary>当前直播间收到的金币礼物记录。</summary>
     public ReadOnlyObservableCollection<GiftFeedItem> GiftItems { get; }

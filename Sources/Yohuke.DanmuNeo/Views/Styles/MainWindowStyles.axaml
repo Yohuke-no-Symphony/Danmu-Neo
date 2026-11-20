@@ -857,7 +857,7 @@
         <Setter Property="Background" Value="{DynamicResource AppCardBrush}" />
     </Style>
 
-    <Style Selector="ItemsControl.danmuFeedList > ContentPresenter:nth-child(2n) Button.danmuFeedButton">
+    <Style Selector="ItemsControl.danmuFeedList Button.danmuFeedButton.alternate">
         <Setter Property="Background" Value="{DynamicResource AppDanmuAlternateRowBrush}" />
     </Style>
 
@@ -1039,20 +1039,12 @@
         <Setter Property="LineSpacing" Value="0" />
     </Style>
 
-    <Style Selector="Grid.compactDanmu TextBlock.regularFeedContent">
+    <Style Selector="Grid.compactDanmu Button.scFeedButton TextBlock.regularFeedContent">
         <Setter Property="IsVisible" Value="False" />
     </Style>
 
     <Style Selector="Grid.compactDanmu components|HoverMarqueeTextBlock.compactFeedContent">
         <Setter Property="IsVisible" Value="True" />
-    </Style>
-
-    <Style Selector="Grid.compactDanmu.compactDanmuWrap Button.danmuFeedButton TextBlock.regularFeedContent">
-        <Setter Property="IsVisible" Value="True" />
-    </Style>
-
-    <Style Selector="Grid.compactDanmu.compactDanmuWrap Button.danmuFeedButton components|HoverMarqueeTextBlock.compactFeedContent">
-        <Setter Property="IsVisible" Value="False" />
     </Style>
 
     <Style Selector="Grid.compactDanmu.compactSuperChatWrap Button.scFeedButton TextBlock.regularFeedContent">

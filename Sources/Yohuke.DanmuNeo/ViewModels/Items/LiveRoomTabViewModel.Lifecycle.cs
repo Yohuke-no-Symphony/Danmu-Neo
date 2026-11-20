@@ -25,6 +25,8 @@ public partial class LiveRoomTabViewModel
         }
 
         isDisposed = true;
+        danmuItems.CollectionChanged -= OnDanmuFeedItemsChanged;
+        pendingDanmuFeedUpdates.Clear();
         LiveMarker.Dispose();
         sendLifetimeTokenSource.Cancel();
         lyricSessionTokenSource.Cancel();

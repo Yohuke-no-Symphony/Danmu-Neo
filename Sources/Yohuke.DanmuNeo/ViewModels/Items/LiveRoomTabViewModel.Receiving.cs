@@ -16,7 +16,6 @@ namespace Yohuke.DanmuNeo.ViewModels.Items;
 public partial class LiveRoomTabViewModel
 {
     private const int MAX_RECENT_SUPER_CHAT_IDENTITIES = 512;
-    private const int MAX_DANMU_ITEMS = 300;
     private const int MAX_GIFT_ITEMS = 300;
     private const string DEFAULT_SUPER_CHAT_COLOR = "#2A60B2";
     private CancellationTokenSource? listenTokenSource;
@@ -189,6 +188,10 @@ public partial class LiveRoomTabViewModel
         {
             CloseReception(context);
         }
+        else
+        {
+            PublishPendingDanmuFeedUpdates();
+        }
 
         if (listenerLogSource is { } source)
         {
@@ -275,9 +278,10 @@ public partial class LiveRoomTabViewModel
                     ArchiveDanmu(context, message, true);
                     if (!ShouldHideDanmu(message))
                     {
-                        AddDanmuToFeed(message, true);
+                        QueueReceivedDanmu(message, context.CancellationToken, isHistory: true);
                     }
                 }
+                PublishPendingDanmuFeedUpdates();
             });
         }
         catch (OperationCanceledException) when (context.CancellationToken.IsCancellationRequested)
@@ -344,6 +348,7 @@ public partial class LiveRoomTabViewModel
         if (ReferenceEquals(activeReception, context))
         {
             activeReception = null;
+            PublishPendingDanmuFeedUpdates();
         }
 
         if (context.ArchiveSession is { } session)
@@ -352,6 +357,7 @@ public partial class LiveRoomTabViewModel
             _ = receptionServices?.Archive?.CompleteSessionAsync(session);
         }
     }
+
     private void OnDanmuReceived(object? sender, BilibiliDanmuMessage message)
     {
         var context = activeReception;
@@ -364,7 +370,8 @@ public partial class LiveRoomTabViewModel
                 ArchiveDanmu(context, message, false, receivedAt);
                 if (!ShouldHideDanmu(message))
                 {
-                    AddDanmuToFeed(message);
+                    QueueReceivedDanmu(message, context.CancellationToken);
+                    ScheduleDanmuFeedPublication();
                 }
             }
         });
@@ -374,7 +381,8 @@ public partial class LiveRoomTabViewModel
     {
         if (historyReconciler.AcceptLive(message) && !ShouldHideDanmu(message))
         {
-            AddDanmuToFeed(message);
+            QueueReceivedDanmu(message, listenTokenSource?.Token ?? CancellationToken.None);
+            PublishPendingDanmuFeedUpdates();
         }
     }
 
@@ -383,7 +391,8 @@ public partial class LiveRoomTabViewModel
         return getSettings?.Invoke().HideEmoticonDanmu == true && message.IsEmoticon;
     }
 
-    private void AddDanmuToFeed(BilibiliDanmuMessage message, bool isHistory = false)
+    private void QueueReceivedDanmu(BilibiliDanmuMessage message, CancellationToken cancellationToken,
+        bool isHistory = false)
     {
         var item = new DanmuFeedItem
         {
@@ -402,26 +411,7 @@ public partial class LiveRoomTabViewModel
             ReplyIsMystery = message.ReplyIsMystery,
             Content = message.Content
         };
-        if (isHistory)
-        {
-            var index = message.Timestamp > 0 ? DanmuItems.Count : 0;
-            while (index > 0 && DanmuItems[index - 1].Time >= item.Time)
-            {
-                index--;
-            }
-            DanmuItems.Insert(index, item);
-        }
-        else
-        {
-            DanmuItems.Add(item);
-        }
-
-        TrimDanmuItems();
-        if (emoticonCacheService is not null && message.Emoticons.Count > 0)
-        {
-            _ = LoadDanmuEmoticonsAsync(item, message.Emoticons, emoticonCacheService,
-                listenTokenSource?.Token ?? CancellationToken.None);
-        }
+        QueueDanmuFeedUpdate(new(item, message, cancellationToken));
     }
 
     private async Task LoadDanmuEmoticonsAsync(
@@ -553,11 +543,6 @@ public partial class LiveRoomTabViewModel
     private void ClearGiftComboState()
     {
         giftComboItems.Clear();
-    }
-
-    private void TrimDanmuItems()
-    {
-        Trim(DanmuItems, MAX_DANMU_ITEMS, oldestFirst: true);
     }
 
     private void OnSuperChatReceived(object? sender, BilibiliSuperChatMessage message)

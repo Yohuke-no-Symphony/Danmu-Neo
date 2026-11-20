@@ -105,6 +105,7 @@ public sealed class HoverMarqueeTextBlock : UserControl
         timer.Tick += Timer_OnTick;
         PointerEntered += Control_OnPointerEntered;
         PointerExited += Control_OnPointerExited;
+        DataContextChanged += (_, _) => StopScrolling();
         DetachedFromVisualTree += (_, _) => StopScrolling();
         scrollViewer.PropertyChanged += ScrollViewer_OnPropertyChanged;
     }
@@ -193,7 +194,7 @@ public sealed class HoverMarqueeTextBlock : UserControl
         UpdateViewport();
         ApplyOffset();
 
-        if (!IsPointerOver || !controller.CanScroll || controller.IsComplete || timer.IsEnabled)
+        if (!IsEffectivelyVisible || !IsPointerOver || !controller.CanScroll || controller.IsComplete || timer.IsEnabled)
         {
             return;
         }
